@@ -1,0 +1,191 @@
+/* ============================================================
+   PointCloud Inspector — Design Tokens
+   ============================================================ */
+:root {
+  /* ---- Surfaces ---- */
+  --bg-app: #0a0d12;
+  --bg-panel: #11151d;
+  --bg-panel-2: #0e1218;
+  --bg-elevated: #171d27;
+  --bg-input: #0c1017;
+  --bg-hover: #1b212c;
+  --bg-active: #222937;
+  --bg-sunken: #070a0e;
+
+  /* ---- Borders ---- */
+  --border: #1f2733;
+  --border-soft: #171d26;
+  --border-strong: #2c3646;
+  --border-focus: #3d8bff;
+
+  /* ---- Text ---- */
+  --text-1: #e9eef6;
+  --text-2: #99a5b8;
+  --text-3: #5d6878;
+  --text-inv: #0a0d12;
+
+  /* ---- Brand / Semantic ---- */
+  --accent: #3d8bff;
+  --accent-hi: #5c9dff;
+  --accent-dim: #1e4a94;
+  --accent-soft: rgba(61, 139, 255, 0.13);
+  --accent-glow: rgba(61, 139, 255, 0.35);
+
+  --ok: #33cf85;
+  --ok-soft: rgba(51, 207, 133, 0.13);
+  --warn: #f5a524;
+  --warn-soft: rgba(245, 165, 36, 0.13);
+  --err: #f4575f;
+  --err-soft: rgba(244, 87, 95, 0.13);
+  --cyan: #22d3ee;
+  --violet: #a78bfa;
+  --pink: #f472b6;
+
+  /* ---- Radii ---- */
+  --r-xs: 3px;
+  --r-sm: 5px;
+  --r-md: 7px;
+  --r-lg: 10px;
+  --r-xl: 14px;
+  --r-full: 999px;
+
+  /* ---- Spacing (4px base) ---- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+
+  /* ---- Typography ---- */
+  --font-ui: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei",
+    "Helvetica Neue", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", "Cascadia Mono", Consolas,
+    "Liberation Mono", Menlo, monospace;
+
+  --fs-xs: 10px;
+  --fs-sm: 11px;
+  --fs-md: 12px;
+  --fs-lg: 13px;
+  --fs-xl: 15px;
+  --fs-2xl: 18px;
+
+  /* ---- Elevation ---- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 24px 70px rgba(0, 0, 0, 0.7);
+
+  /* ---- Layout ---- */
+  --topbar-h: 46px;
+  --statusbar-h: 26px;
+  --rail-w: 44px;
+  --panel-l-w: 294px;
+  --panel-r-w: 300px;
+  --dock-h: 232px;
+
+  /* ---- Motion ---- */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+
+  /* ---- Theme-dependent controls (overridden in light) ---- */
+  --slider-track: #232c3a;
+  --slider-thumb: #dfe7f2;
+  --slider-thumb-border: #7c8ba0;
+  --switch-track: #26303e;
+  --switch-knob: #8c99ad;
+  --btn-hover-border: #3a4658;
+  --scrollbar: #232b38;
+  --scrollbar-hover: #303a4b;
+  --vp-bg: #06080b;
+  --topbar-grad-a: #141a23;
+  --topbar-grad-b: #10151d;
+  --topbar-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+  --welcome-bg: radial-gradient(
+      ellipse 70% 55% at 50% 42%,
+      rgba(61, 139, 255, 0.07),
+      transparent 70%
+    ),
+    #070a0e;
+
+  /* ---- Floating overlays (dark cards atop the 3D viewport; kept dark in both themes) ---- */
+  --overlay-bg: rgba(12, 16, 22, 0.82);
+  --overlay-bg-solid: rgba(10, 13, 18, 0.93);
+  --overlay-border: rgba(255, 255, 255, 0.07);
+  --overlay-border-strong: #2c3646;
+  --overlay-fg: #e9eef6;
+  --overlay-fg-2: #99a5b8;
+  --overlay-fg-3: #7c8a9c;
+  --overlay-hair: rgba(255, 255, 255, 0.055);
+  --overlay-hair-strong: rgba(255, 255, 255, 0.14);
+  --overlay-handle: #ffffff;
+  --overlay-handle-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 5px rgba(0, 0, 0, 0.8);
+  --tooltip-bg: #0a0d12;
+
+  /* ---- Toast (theme-aware) ---- */
+  --toast-bg: rgba(23, 29, 39, 0.97);
+}
+
+:root[data-theme="light"] {
+  --bg-app: #f2f4f7;
+  --bg-panel: #ffffff;
+  --bg-panel-2: #f7f9fb;
+  --bg-elevated: #ffffff;
+  --bg-input: #ffffff;
+  --bg-hover: #eef1f5;
+  --bg-active: #e4e9f0;
+  --bg-sunken: #e9edf2;
+  --border: #dfe4ea;
+  --border-soft: #eaeef2;
+  --border-strong: #c8d0da;
+  --text-1: #131820;
+  --text-2: #5a6675;
+  --text-3: #8a95a4;
+  --text-inv: #ffffff;
+  --shadow-sm: 0 1px 2px rgba(20, 30, 50, 0.08);
+  --shadow-md: 0 4px 16px rgba(20, 30, 50, 0.1);
+  --shadow-lg: 0 12px 40px rgba(20, 30, 50, 0.14);
+  --shadow-xl: 0 24px 70px rgba(20, 30, 50, 0.18);
+
+  /* theme-dependent controls */
+  --slider-track: #d3dae3;
+  --slider-thumb: #46506a;
+  --slider-thumb-border: #aeb8c6;
+  --switch-track: #d8dee7;
+  --switch-knob: #ffffff;
+  --btn-hover-border: #b3bdca;
+  --scrollbar: #c3ccd8;
+  --scrollbar-hover: #a9b3c1;
+  --vp-bg: #dfe4ec;
+  --topbar-grad-a: #ffffff;
+  --topbar-grad-b: #eef2f7;
+  --topbar-shadow: 0 1px 0 rgba(20, 30, 50, 0.08);
+  --welcome-bg: radial-gradient(
+      ellipse 70% 55% at 50% 42%,
+      rgba(61, 139, 255, 0.1),
+      transparent 70%
+    ),
+    #eef2f7;
+
+  /* overlays adapt to light theme */
+  --overlay-bg: rgba(255, 255, 255, 0.82);
+  --overlay-bg-solid: rgba(251, 253, 255, 0.94);
+  --overlay-border: rgba(0, 0, 0, 0.08);
+  --overlay-border-strong: #c8d0da;
+  --overlay-fg: #1e2736;
+  --overlay-fg-2: #4a5568;
+  --overlay-fg-3: #718096;
+  --overlay-hair: rgba(0, 0, 0, 0.05);
+  --overlay-hair-strong: rgba(0, 0, 0, 0.14);
+  --overlay-handle: #1e2736;
+  --overlay-handle-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6), 0 0 5px rgba(0, 0, 0, 0.15);
+
+  /* toast & tooltip become light in light theme */
+  --toast-bg: rgba(255, 255, 255, 0.97);
+  --tooltip-bg: #ffffff;
+}

@@ -1,0 +1,24 @@
+{
+  "name": "pointcloud-inspector",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Professional browser-based point cloud inspection tool",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "smoke": "esbuild scripts/smoke.ts --bundle --platform=node --format=esm --target=node20 --outfile=.tmp/smoke.mjs --log-level=warning && node .tmp/smoke.mjs",
+    "smoke:browser": "node scripts/browser-smoke.mjs"
+  },
+  "dependencies": {
+    "laz-perf": "^0.0.7",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.169.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}
