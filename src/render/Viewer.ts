@@ -162,6 +162,15 @@ export class Viewer {
   private dpr = 1;
   /** Upper bound for the device pixel ratio (user configurable). */
   dprCap = 2;
+  /** State saved by `renderTo` for `renderRestore` (null when on-screen). */
+  private renderUndo: {
+    prevRatio: number;
+    prevBg: THREE.Color;
+    prevAlpha: number;
+    prevAspect: number;
+    prevDpr: number;
+    prevScale: number;
+  } | null = null;
 
   onFrame?: (fps: number) => void;
   fps = 0;
@@ -174,7 +183,9 @@ export class Viewer {
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
-      alpha: false,
+      // alpha:true so image export can render onto a transparent background;
+      // on-screen rendering stays opaque because the clear alpha is 1.
+      alpha: true,
       preserveDrawingBuffer: true,
       powerPreference: 'high-performance',
     });
@@ -718,23 +729,73 @@ export class Viewer {
 
   /* ────────── output ────────── */
 
-  screenshot(scale = 2, background?: string): string {
-    const w = this.canvas.clientWidth;
-    const h = this.canvas.clientHeight;
+  /**
+   * Render the scene at an arbitrary **logical** size and pixel scale — used
+   * by the image-export dialog for both its live thumbnail and the final PNG.
+   *
+   * After the call the WebGL canvas holds a `width × height × pixelScale`
+   * buffer; the caller must consume it synchronously (`drawImage` / toDataURL,
+   * valid thanks to `preserveDrawingBuffer`) and then call `renderRestore()`.
+   * The camera aspect is switched to the target size, so an export with a
+   * different aspect ratio than the on-screen viewport is framed correctly
+   * instead of being stretched. `background: null` renders transparent
+   * (clear alpha 0), a string paints that colour, undefined keeps the current.
+   */
+  renderTo(w: number, h: number, pixelScale: number, background?: string | null): void {
     const prevRatio = this.renderer.getPixelRatio();
     const prevBg = new THREE.Color();
     this.renderer.getClearColor(prevBg);
+    const prevAspect = this.camera.aspect;
+    const u = this.material.uniforms;
+    const prevDpr = u.uDpr.value as number;
+    const prevScale = u.uScale.value as number;
+    const prevAlpha = this.renderer.getClearAlpha();
 
-    if (background) this.renderer.setClearColor(new THREE.Color(background), 1);
-    this.renderer.setPixelRatio(scale);
+    if (background === null) this.renderer.setClearColor(0x000000, 0);
+    else if (background) this.renderer.setClearColor(new THREE.Color(background), 1);
+    this.renderer.setPixelRatio(pixelScale);
     this.renderer.setSize(w, h, false);
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    // World-size mode derives point size from the viewport height; fixed-size
+    // mode needs uDpr so points scale up with the export resolution exactly
+    // like they do with the device pixel ratio on screen.
+    u.uDpr.value = pixelScale;
+    u.uScale.value = h / (2 * Math.tan((this.camera.fov * Math.PI) / 360));
     this.renderer.render(this.scene, this.camera);
-    const url = this.canvas.toDataURL('image/png');
 
-    this.renderer.setPixelRatio(prevRatio);
+    this.renderUndo = { prevRatio, prevBg, prevAlpha, prevAspect, prevDpr, prevScale };
+  }
+
+  /** Undo a `renderTo` and put the on-screen viewport back the way it was. */
+  renderRestore(): void {
+    const undo = this.renderUndo;
+    if (!undo) return;
+    this.renderUndo = null;
+    const w = this.canvas.clientWidth;
+    const h = this.canvas.clientHeight;
+    this.renderer.setPixelRatio(undo.prevRatio);
     this.renderer.setSize(w, h, false);
-    this.renderer.setClearColor(prevBg, 1);
+    this.renderer.setClearColor(undo.prevBg, undo.prevAlpha);
+    this.camera.aspect = undo.prevAspect;
+    this.camera.updateProjectionMatrix();
+    const u = this.material.uniforms;
+    u.uDpr.value = undo.prevDpr;
+    u.uScale.value = undo.prevScale;
     this.invalidate();
+  }
+
+  /** Largest square texture the GPU can render (caps export resolution). */
+  get maxRenderSize(): number {
+    return this.renderer.capabilities.maxTextureSize || 4096;
+  }
+
+  screenshot(scale = 2, background?: string): string {
+    const w = this.canvas.clientWidth;
+    const h = this.canvas.clientHeight;
+    this.renderTo(w, h, scale, background);
+    const url = this.canvas.toDataURL('image/png');
+    this.renderRestore();
     return url;
   }
 

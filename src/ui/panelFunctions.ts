@@ -776,41 +776,14 @@ function radiusTFromValue(app: App, v: number): number {
 function buildExportPage(app: App): PageHandle {
   const secImg = section('导出图片', { icon: 'camera' });
 
-  const scale = segmented<'1' | '2' | '3' | '4'>({
-    label: '分辨率倍率',
-    options: [
-      { value: '1', label: '1×' },
-      { value: '2', label: '2×' },
-      { value: '3', label: '3×' },
-      { value: '4', label: '4×' },
-    ],
-    value: '2',
-  });
-
-  const bg = select<'current' | 'white' | 'black'>({
-    label: '背景',
-    options: [
-      { value: 'current', label: '当前背景色' },
-      { value: 'white', label: '白色' },
-      { value: 'black', label: '黑色' },
-    ],
-    value: 'current',
-  });
-
   const shotBtn = h('button', { class: 'btn btn-sm btn-primary btn-block', type: 'button' }, [
     icon('camera', 13),
-    h('span', { text: '导出 PNG 截图' }),
+    h('span', { text: '图像导出…' }),
   ]);
-  shotBtn.addEventListener('click', () => {
-    const bgv: string | undefined =
-      bg.get() === 'white' ? '#ffffff' : bg.get() === 'black' ? '#000000' : app.state.render.background;
-    app.exportPNG(Number(scale.get()), bgv);
-  });
+  shotBtn.addEventListener('click', () => app.openImageExport());
 
-  secImg.body.appendChild(scale.el);
-  secImg.body.appendChild(bg.el);
   secImg.body.appendChild(shotBtn);
-  secImg.body.appendChild(hint('截图会包含当前的点云、色标与辅助元素，但不包含界面面板。'));
+  secImg.body.appendChild(hint('可配置标题、色卡（位置 / 高度 / 标签 / 单位）、输出尺寸与分辨率，右侧实时预览，所见即所得。'));
 
   const secData = section('导出点云', { icon: 'download' });
 

@@ -926,3 +926,142 @@ input[type="color"]::-webkit-color-swatch {
     transform: translateY(10px) scale(0.98);
   }
 }
+
+/* ============================================================
+   Image-export dialog (图像导出)
+   ============================================================ */
+.export-modal {
+  width: min(940px, 96vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+.export-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+}
+.export-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+  gap: 16px;
+  align-items: start;
+}
+.export-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.export-group {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  background: var(--bg-panel-2);
+  overflow: hidden;
+}
+.export-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--border-soft);
+}
+.export-group-title .export-group-check {
+  font-size: var(--fs-md);
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text-2);
+}
+.export-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 10px;
+  transition: opacity var(--dur-1) var(--ease);
+}
+.export-group.is-off .export-group-body {
+  opacity: 0.42;
+  pointer-events: none;
+}
+.export-group.is-off .export-group-title {
+  color: var(--text-3);
+}
+.export-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+.export-row > * {
+  flex: 1;
+  min-width: 0;
+}
+.export-row .btn {
+  flex: none;
+}
+.export-row-tight {
+  align-items: center;
+  justify-content: space-between;
+}
+.export-row-tight > * {
+  flex: none;
+}
+.export-row-tight .check {
+  flex: 1;
+}
+
+/* Preview column */
+.export-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+}
+.export-preview-label {
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.export-preview-box {
+  display: grid;
+  place-items: center;
+  height: clamp(340px, 54vh, 560px);
+  padding: 8px;
+  /* Classic transparency checkerboard — also makes透明背景 obvious. */
+  background: repeating-conic-gradient(#9aa3ad 0% 25%, #d5dade 0% 50%) 0 0 / 18px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+.export-canvas {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 2px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  touch-action: none;
+  user-select: none;
+}
+.export-preview .btn {
+  align-self: center;
+}
+/* Dimmed control (e.g. 背景色 while透明背景 is on). */
+.export-group-body .is-off {
+  opacity: 0.42;
+  pointer-events: none;
+}
+.export-preview-meta {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.export-preview-hint {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+  line-height: 1.45;
+  text-align: center;
+}

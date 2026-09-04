@@ -28,8 +28,9 @@ import { yieldUI } from './io/common';
 import { previewTextColumns } from './io/text';
 import type { ColumnSelection } from './io/common';
 import { askColumnSelection } from './ui/columnDialog';
+import { openImageExportDialog } from './ui/exportDialog';
 import {
-  downloadDataURL, downloadText, profileCSV, serializePreset,
+  downloadText, profileCSV, serializePreset,
   viewToCSV, viewToPCD, viewToPLY,
 } from './io/export';
 import { Viewer, type PickResult } from './render/Viewer';
@@ -139,6 +140,8 @@ export class App {
   private previewStops: ColorStop[] | null = null;
   private zStats: AttributeStats | null = null;
   private zFor: CloudView | null = null;
+  /** Current legend annotation (label / unit / visibility) — feeds the image-export dialog defaults. */
+  private legendInfo = { label: '', unit: '', visible: false };
 
   private pointer = { x: 0, y: 0, inside: false };
   private pickQueued = false;
@@ -219,11 +222,11 @@ export class App {
     ]);
     demo.addEventListener('click', () => void this.loadDemo());
 
-    const shot = h('button', { class: 'btn btn-sm', type: 'button', title: '导出当前视口为 PNG' }, [
+    const shot = h('button', { class: 'btn btn-sm', type: 'button', title: '配置标题、色卡与分辨率，导出当前视口为 PNG' }, [
       icon('camera', 13),
-      h('span', { text: '截图' }),
+      h('span', { text: '图像导出' }),
     ]);
-    shot.addEventListener('click', () => this.exportPNG());
+    shot.addEventListener('click', () => this.openImageExport());
 
     const fit = h('button', { class: 'btn btn-sm', type: 'button', title: '缩放至全部 (F)' }, [
       icon('frame', 13),
@@ -1187,18 +1190,25 @@ export class App {
      Export
      ════════════════════════════════════════════════════════════ */
 
-  exportPNG(scale = 2, background?: string): void {
-    if (!this.state.view) {
+  /** Open the configurable image-export dialog (title / colour bar / size). */
+  openImageExport(): void {
+    if (!this.state.view || this.state.view.count === 0) {
       toast('warn', '还没有可导出的点云');
       return;
     }
-    try {
-      const url = this.viewer.screenshot(scale, background);
-      downloadDataURL(url, `${this.baseName()}_view_${scale}x.png`);
-      toast('ok', '截图已导出', `${scale}× 分辨率 PNG。`);
-    } catch (err) {
-      toast('err', '截图失败', err instanceof Error ? err.message : String(err));
-    }
+    const r = this.state.render;
+    openImageExportDialog({
+      viewer: this.viewer,
+      baseName: this.baseName(),
+      lut: this.lut,
+      lo: this.effRange.lo,
+      hi: this.effRange.hi,
+      log: r.range.log,
+      legendVisible: this.legendInfo.visible,
+      legendLabel: this.legendInfo.label,
+      legendUnit: this.legendInfo.unit,
+      background: r.background,
+    });
   }
 
   exportPoints(format: 'csv' | 'ply' | 'pcd', scope: 'view' | 'source'): void {
@@ -1310,6 +1320,7 @@ export class App {
         colorGain: r.colorGain,
       });
       this.viewer.setHelpers(null, { grid: 'none', box: false, axes: false });
+      this.legendInfo = { label: '', unit: '', visible: false };
       this.legend.update({
         lut: this.lut, lo: 0, hi: 1, log: false, label: '', unit: '', stats: null, visible: false,
       });
@@ -1357,12 +1368,17 @@ export class App {
     this.viewer.setHelpers(view.bounds, { grid: r.grid, box: r.showBox, axes: r.showAxes });
 
     const visible = r.colorMode === 'attribute' || r.colorMode === 'elevation';
+    this.legendInfo = {
+      label: label || (r.colorMode === 'rgb' ? '原色 RGB' : '统一颜色'),
+      unit,
+      visible,
+    };
     this.legend.update({
       lut: this.lut,
       lo: this.effRange.lo,
       hi: this.effRange.hi,
       log: r.range.log,
-      label: label || (r.colorMode === 'rgb' ? '原色 RGB' : '统一颜色'),
+      label: this.legendInfo.label,
       unit,
       stats,
       visible,

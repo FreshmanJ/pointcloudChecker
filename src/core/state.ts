@@ -130,9 +130,9 @@ export function initialState(): AppState {
       reverse: false,
       steps: 0,
       background: '#0a0d12',
-      grid: 'xz',
-      showBox: true,
-      showAxes: true,
+      grid: 'none',
+      showBox: false,
+      showAxes: false,
       colorGain: 1,
       turntable: false,
       range: {
