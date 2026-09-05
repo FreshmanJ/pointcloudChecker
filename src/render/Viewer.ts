@@ -121,6 +121,53 @@ const TURNTABLE_SPEED = 0.9;
 const _spinQuat = new THREE.Quaternion();
 const _spinOffset = new THREE.Vector3();
 
+/**
+ * Pick/measure markers: a ring with a centre dot, drawn in device pixels and
+ * depth-tested against the cloud so it sits *on* the surface instead of
+ * floating above everything.
+ *
+ * The vertex stage nudges the marker a fraction of its distance toward the
+ * camera — enough to win the depth tie against the very point it marks (a bare
+ * depth test against a dense cloud shreds the ring), while geometry genuinely
+ * in front still occludes it.
+ */
+const MARKER_VERT = /* glsl */ `
+  uniform float uSize;
+  uniform float uDpr;
+
+  void main() {
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    mv.z += max(-mv.z, 1e-6) * 0.004;
+    gl_Position = projectionMatrix * mv;
+    gl_PointSize = uSize * uDpr;
+  }
+`;
+
+const MARKER_FRAG = /* glsl */ `
+  precision highp float;
+  uniform vec3 uColor;
+  uniform vec3 uOutline;
+  uniform float uSize;
+  uniform float uOpacity;
+
+  void main() {
+    float r = length(gl_PointCoord - vec2(0.5)) * uSize;
+    float s = uSize / 16.0;
+    float aa = 0.65;
+
+    float aDot = 1.0 - smoothstep(1.4 * s - aa, 1.4 * s + aa, r);
+    float aRing = smoothstep(4.8 * s - aa, 4.8 * s + aa, r) * (1.0 - smoothstep(6.4 * s - aa, 6.4 * s + aa, r));
+    float aEdge = smoothstep(6.9 * s - aa, 6.9 * s + aa, r) * (1.0 - smoothstep(7.9 * s - aa, 7.9 * s + aa, r));
+
+    float a = max(aDot, max(aRing, aEdge));
+    if (a < 0.01) discard;
+
+    vec3 c = uColor * max(aDot, aRing);
+    c = mix(c, uOutline, aEdge);
+    gl_FragColor = vec4(c, a * uOpacity);
+  }
+`;
+
 export interface PickResult {
   viewIndex: number;
   sourceIndex: number;
@@ -152,6 +199,8 @@ export class Viewer {
   private markerGroup = new THREE.Group();
   private hoverMarker: THREE.Points;
   private endpointMarkers: THREE.Points[] = [];
+  /** Every marker material, so dpr and outline colour stay in sync. */
+  private markerMaterials: THREE.ShaderMaterial[] = [];
   private measureLine: THREE.Mesh | null = null;
   private measureGroup = new THREE.Group();
 
@@ -253,11 +302,11 @@ export class Viewer {
       },
     });
 
-    this.hoverMarker = makeMarker(0x4dd2ff, 13);
+    this.hoverMarker = makeMarker(0x06b6d4, 16, this.markerMaterials);
     this.hoverMarker.visible = false;
     this.markerGroup.add(this.hoverMarker);
     for (let i = 0; i < 2; i++) {
-      const m = makeMarker(i === 0 ? 0x35d07f : 0xff6b6b, 15);
+      const m = makeMarker(i === 0 ? 0x35d07f : 0xff6b6b, 19, this.markerMaterials);
       m.visible = false;
       this.endpointMarkers.push(m);
       this.markerGroup.add(m);
@@ -265,6 +314,7 @@ export class Viewer {
     this.markerGroup.renderOrder = 10;
     this.scene.add(this.markerGroup);
     this.scene.add(this.measureGroup);
+    this.setMarkerOutline('#06080b');
 
     this.resize();
     this.loop();
@@ -326,6 +376,7 @@ export class Viewer {
     this.controls.handleResize();
     this.controls.rotateSpeed = Math.PI * (w / h) * BASE_ROTATE_SPEED;
     this.material.uniforms.uDpr.value = this.dpr;
+    for (const m of this.markerMaterials) m.uniforms.uDpr.value = this.dpr;
     this.material.uniforms.uScale.value =
       h / (2 * Math.tan((this.camera.fov * Math.PI) / 360));
     this.invalidate();
@@ -421,7 +472,19 @@ export class Viewer {
     this.material.depthWrite = s.opacity >= 0.99;
 
     this.renderer.setClearColor(new THREE.Color(s.background), 1);
+    this.setMarkerOutline(s.background);
     this.invalidate();
+  }
+
+  /**
+   * Marker outlines must contrast with whatever is behind them: white on a dark
+   * background, near-black on a light one. Picked from the clear colour.
+   */
+  private setMarkerOutline(background: string): void {
+    const bg = new THREE.Color(background);
+    const lum = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b;
+    const outline = lum > 0.45 ? 0x22303c : 0xf1f5f9;
+    for (const m of this.markerMaterials) m.uniforms.uOutline.value = new THREE.Color(outline);
   }
 
   /* ────────── helpers (grid / box / axes) ────────── */
@@ -818,17 +881,25 @@ export class Viewer {
 
 /* ────────── marker helpers ────────── */
 
-function makeMarker(color: number, size: number): THREE.Points {
+function makeMarker(color: number, size: number, materials: THREE.ShaderMaterial[]): THREE.Points {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3), 3));
-  const mat = new THREE.PointsMaterial({
-    color,
-    size,
-    sizeAttenuation: false,
+  const mat = new THREE.ShaderMaterial({
+    vertexShader: MARKER_VERT,
+    fragmentShader: MARKER_FRAG,
     transparent: true,
-    depthTest: false,
+    depthTest: true,
     depthWrite: false,
+    uniforms: {
+      uColor: { value: new THREE.Color(color) },
+      // Overwritten from the background colour whenever the theme changes.
+      uOutline: { value: new THREE.Color(0x22303c) },
+      uSize: { value: size },
+      uOpacity: { value: 1 },
+      uDpr: { value: 1 },
+    },
   });
+  materials.push(mat);
   const p = new THREE.Points(geo, mat);
   p.renderOrder = 30;
   p.frustumCulled = false;
