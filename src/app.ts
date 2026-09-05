@@ -257,7 +257,7 @@ export class App {
   private initTheme(): void {
     const stored = localStorage.getItem(LS_THEME);
     const theme: 'dark' | 'light' =
-      stored === 'light' || stored === 'dark' ? stored : 'dark';
+      stored === 'light' || stored === 'dark' ? stored : 'light';
     this.applyTheme(theme, true);
   }
 

@@ -1,24 +1,119 @@
 # PointCloud Inspector
 
+[English](README.md) | [中文](README.zh-CN.md)
+
+![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178c6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white)
+![WebGL](https://img.shields.io/badge/renderer-WebGL-990000?logo=webgl)
+![100% Local](https://img.shields.io/badge/privacy-100%25%20local-2ea043?logo=shield-check)
+
 > A professional, fully client-side point cloud inspection & analysis tool that runs in your browser.
 
 PointCloud Inspector is a web application for loading, validating, visualising and analysing 3D point clouds. Everything runs locally in the browser — **your files never leave your machine**. No backend, no upload, no account.
+
+![PointCloud Inspector — overview](docs/shots/overview.png)
+
+---
+
+## Table of contents
+
+- [Features](#features)
+  - [High-performance WebGL rendering](#high-performance-webgl-rendering)
+  - [Flexible colouring](#flexible-colouring)
+  - [Scene & camera controls](#scene--camera-controls)
+  - [Smart downsampling](#smart-downsampling)
+  - [Compliance validation](#compliance-validation)
+  - [Non-destructive filtering](#non-destructive-filtering)
+  - [Section / profile analysis](#section--profile-analysis)
+  - [Line / segment measurement](#line--segment-measurement)
+  - [Spatial picking](#spatial-picking)
+  - [Image export](#image-export)
+  - [Data & session export](#data--session-export)
+  - [Ergonomic UI](#ergonomic-ui)
+- [Getting started](#getting-started)
+- [Supported formats](#supported-formats)
+- [Project structure](#project-structure)
+- [Tech stack](#tech-stack)
+- [npm scripts](#npm-scripts)
+- [Privacy & performance notes](#privacy--performance-notes)
+- [License](#license)
 
 ---
 
 ## Features
 
-- **Zero-install, privacy-first** — Drop a file and inspect it. Parsing, rendering and analysis all happen on-device via WebGL and Web Workers.
-- **Broad format support** — LAS / LAZ / PCD / PLY / PTS / PTX / XYZ / CSV / TXT / OBJ / raw BIN. Unknown extensions are sniffed by content.
-- **High-performance WebGL rendering** — Custom Three.js shader with point-size control (screen-space or world-space), square/circle sprites, opacity, fog and colour gain.
-- **Flexible colouring** — Uniform colour, per-attribute lookup tables (LUT), raw RGB, or elevation. Built-in colormaps (viridis, terrain, thermal, jet, …) with automatic guesses from attribute names, plus user-importable custom LUTs.
-- **Smart downsampling** — Voxel / random / uniform strategies that work on index buffers (the source arrays are never copied). Auto-downsamples above a soft limit and refuses to render above a hard limit to keep the tab responsive.
-- **Compliance / validation** — Detects invalid coordinates, duplicate ratios and suspicious coordinate magnitudes (often a unit mistake), and recommends a safe target count.
-- **Non-destructive filtering** — Range rules (per axis or named scalar) and set rules (e.g. LAS classification codes), combined with AND/OR logic. Filters compose with downsampling and colouring.
-- **Section / profile analysis** — Sample a cylindrical tube around a picked segment and reduce it to a 1-D curve with rich statistics (min/max/mean/median/std, trend slope, extremes location, largest slope step).
-- **Measurement & picking** — `orbit` and `measure` interaction modes, spatial picking with hover cards, and on-screen distance read-outs.
-- **Rich exports** — Current view as CSV / PLY / PCD, profile curves as CSV, rendered viewport as an image, and reusable session presets (JSON).
-- **Ergonomic UI** — Dark/light themes, resizable collapsible panels (left/right/bottom docks), charts and legends, and keyboard shortcuts (`Ctrl+1/2/3` toggle panels). Demo data is one click away.
+### High-performance WebGL rendering
+
+A custom Three.js `ShaderMaterial` renders points with screen-space or world-space sizing, square/circle sprites, opacity, distance fog and a colour gain control. The viewport supports `TrackballControls` so the camera can tumble freely across both poles — essential when inspecting clouds where the up-axis is ambiguous.
+
+The overview shot above shows the bundled `demo_motor_winding` cloud loaded with elevation-based colouring, the on-viewport HUD card, the file-info panel on the right and the statistics dock at the bottom.
+
+### Flexible colouring
+
+Colour by any scalar attribute, by raw RGB from the file, by elevation (Z), or a single uniform colour. The LUT tab ships with built-in colormaps (viridis, terrain, thermal, jet, …) and the attribute name is used to **auto-guess** the right map (e.g. fields containing *temp* / *°C* get *thermal*). You can also import your own custom LUT as JSON.
+
+![Colouring — auto-mapping, percentile clipping, log/zero-offset toggles](docs/shots/coloring.png)
+
+Controls include percentile-based low/high clipping, logarithmic mapping, a zero-offset offset, reversal and a divergence (diverging) mode for fields with a meaningful midpoint.
+
+### Scene & camera controls
+
+The *Scene* tab gives you a fine-grained control over the scene: viewport background colour, grid plane (none/XY/XZ/YZ), bounding box, coordinate axes, auto-rotate (turntable), one-click view presets (isometric, ±X/±Y/±Z), per-plane rotation and *frame all*. Themes (dark/light) link the panel surfaces and the canvas background.
+
+![Scene — environment, view presets, rotation, performance](docs/shots/scene.png)
+
+### Smart downsampling
+
+The *Sampling* tab exposes four strategies — **voxel**, **random**, **uniform**, **none** — that operate on index buffers so the source arrays are never copied. Targets can be set explicitly or auto-sized; voxel edge length is auto-estimated when the *target* mode is on. Quick-pick chips (`100k / 300k / 800k / 1.5M / 3M`) cover common working-set sizes. A live *downsampling stats* card reports point counts and decimation ratio.
+
+![Downsampling — voxel/random/uniform, quick targets, live stats](docs/shots/downsample.png)
+
+### Compliance validation
+
+Every freshly-parsed cloud is run through a compliance check that detects invalid coordinates, duplicate ratios, suspicious coordinate magnitudes (often a unit mistake) and the fraction of points carrying RGB. The *Compliance report* dock surfaces all issues at a glance and recommends a safe target count when the cloud exceeds the soft limit.
+
+![Compliance report — issue list and recommendations](docs/shots/report.png)
+
+### Non-destructive filtering
+
+Build an arbitrary set of rules against X/Y/Z axes or named scalar attributes, in **range** mode (min/max) or **set** mode (e.g. LAS classification codes). Rules combine with **AND / OR** logic, can be individually toggled, and compose with downsampling and colouring without touching the source data. A live *filter stats* card shows how many points survive each pass.
+
+![Filtering — range/set rules with AND/OR combination logic](docs/shots/filters.png)
+
+### Section / profile analysis
+
+Pick two points (A and B) on the cloud to define a segment; the profiler samples a cylindrical tube around the line and reduces the samples to a 1-D curve along the section. The result page reports min/max/mean/median/std, the location of extremes, the largest slope step and the least-squares trend, plus a scatter overlay of the raw samples.
+
+You define the segment in [Line / segment measurement](#line--segment-measurement).
+
+![Profile analysis — section definition and statistics panel](docs/shots/profile.png)
+
+### Line / segment measurement
+
+Switch to **measure mode** (the *剖面测量* / section-measure mode) from the mode switch in the top bar. Click any point on the cloud to drop the start pin **A**, then click a second point to drop **B** — a highlighted segment is drawn straight across the viewport between the two endpoints, and its length is read out in the hint bar. Press **Esc** to clear the current segment and start over.
+
+The segment you define also drives the section / profile analysis: once A and B are set, the profiler samples a cylindrical tube around the line and reduces it to the 1-D curve described in [Section / profile analysis](#section--profile-analysis).
+
+![Line / segment measurement — pick A then B, segment overlay and length readout](docs/shots/measure.png)
+
+### Spatial picking
+
+**Pick** any point to inspect its position and attribute values in the hover card; coordinates are projected onto the cursor with depth-aware display so you can identify outliers quickly. Hovering also highlights the nearest point and reports its distance from the camera.
+
+### Image export
+
+The camera button in the top bar opens the **image export** dialog. Configure an optional title, toggle the colour-bar / legend, and choose the output size (match the viewport or a fixed resolution), then export the current rendered viewport as a **PNG**. The background follows your scene settings, so the export matches exactly what you see on screen.
+
+![Image export — title, colour bar and size options](docs/shots/export.png)
+
+### Data & session export
+
+Save the current cloud as **CSV / PLY / PCD** (ASCII), the profile curve as **CSV**, or the entire session as a reusable **JSON preset** that restores your camera, colouring, filters and selection. (Rendered-viewport PNG export lives in [Image export](#image-export).)
+
+### Ergonomic UI
+
+Resizable, collapsible panels (left / right / bottom dock) with keyboard shortcuts (`Ctrl+1 / Ctrl+2 / Ctrl+3` to toggle). Light and dark themes with linked surfaces. Charts in the data dock visualise attribute distributions. The bundled demo cloud is one click away from the welcome screen.
 
 ---
 
@@ -47,7 +142,7 @@ npm run build
 npm run preview
 ```
 
-Then open the URL printed by Vite and **drag a point cloud file** onto the viewport (or use *Load file* / *Load demo data*).
+Then open the URL printed by Vite and **drag a point cloud file** onto the viewport (or use *Load file* / *Load demo data* on the welcome screen).
 
 ---
 
@@ -67,7 +162,7 @@ Then open the URL printed by Vite and **drag a point cloud file** onto the viewp
 | `.obj` | OBJ | Wavefront — vertices only | |
 | `.bin` | BIN | Raw `float32` xyz triplet stream | ✔ |
 
-For delimited text formats (CSV/TXT/XYZ/PTS/PTX) a column-mapping dialog lets you assign which columns are X / Y / Z and which carry extra scalar attributes.
+For delimited text formats (CSV/TXT/XYZ/PTS/PTX) a column-mapping dialog lets you assign which columns are X / Y / Z and which carry extra scalar attributes. Files with unknown extensions are sniffed by content.
 
 ---
 
@@ -104,6 +199,7 @@ pointcloudChecker/
 │  │  ├─ columnDialog.ts   # Text column mapping
 │  │  ├─ legend.ts chart.ts controls.ts dom.ts
 │  └─ styles/              # Design tokens → base → components → app shell
+├─ docs/shots/             # README screenshots (regenerated by scripts/readme-shots.mjs)
 ├─ scripts/                # Build/CI smoke tests & interaction probes
 └─ vite.config.ts
 ```
@@ -121,6 +217,7 @@ The architecture separates **`core`** (pure, DOM-free algorithms), **`io`** (par
 | 3D / WebGL | Three.js (custom `ShaderMaterial`, `TrackballControls`) |
 | LAZ decode | `laz-perf` |
 | UI | Hand-rolled DOM components + CSS variables (light/dark themes) |
+| Smoke tests | Raw Chrome DevTools Protocol over Node `WebSocket` |
 
 ---
 
@@ -134,6 +231,7 @@ The architecture separates **`core`** (pure, DOM-free algorithms), **`io`** (par
 | `npm run typecheck` | Run TypeScript type checks without emitting. |
 | `npm run smoke` | Node smoke test of the core parsing pipeline. |
 | `npm run smoke:browser` | Headless browser interaction smoke test. |
+| `node scripts/readme-shots.mjs` | Regenerate the README screenshots in `docs/shots/` (requires `npm run dev` on `:5173`). |
 
 ---
 
@@ -145,9 +243,33 @@ The architecture separates **`core`** (pure, DOM-free algorithms), **`io`** (par
 
 ---
 
+## FAQ
+
+**Does it upload my point cloud?**
+No. Parsing and rendering run entirely in your browser through the File API and WebGL. No file ever leaves your machine.
+
+**How many points can it handle?**
+A *soft* limit (~1.5 M) triggers automatic downsampling; a *hard* limit (~40 M) avoids full-resolution rendering so the tab stays responsive. For very large clouds, prefer LAZ/LAS and let voxel downsampling shrink the working set.
+
+**Which formats are supported?**
+LAS, LAZ, PCD, PLY, PTS, PTX, XYZ, CSV, TXT, OBJ and raw BIN. Unknown extensions are detected by content, and delimited text formats prompt a column-mapping dialog.
+
+**Can I use it commercially?**
+Yes. The project is released under the [GNU General Public License v3.0](#license) (**GPL-3.0**), a strong copyleft license: you may use, study, modify and redistribute it for any purpose, including commercial, provided that derivative works are also distributed under GPL-3.0 (with source made available).
+
+**Does it work on mobile?**
+It is a desktop-first WebGL app. A mouse/trackpad is recommended; touch input works but is not the primary target.
+
+**How do I load a custom LUT or remap text columns?**
+Open the *LUT* tab in the left panel to import a custom colormap JSON. For CSV/TXT/XYZ/PTS/PTX files the column-mapping dialog lets you choose which columns are X / Y / Z and which carry extra scalar attributes.
+
+---
+
 ## License
 
-See `LICENSE` in the repository root. (Add your chosen license here.)
+This project is released under the **GNU General Public License v3.0** (**GPL-3.0**). See [`LICENSE`](LICENSE) for the full text.
+
+You are free to use, study, modify and redistribute the software for any purpose, including commercial use, provided that derivative works are also licensed under GPL-3.0 and their complete corresponding source code is made available under the same terms. There is no warranty; see the license for details.
 
 ---
 

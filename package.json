@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Professional browser-based point cloud inspection tool",
+  "license": "GPL-3.0",
+  "author": "FreshmanJ",
+  "homepage": "https://www.gnu.org/licenses/gpl-3.0.html",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
