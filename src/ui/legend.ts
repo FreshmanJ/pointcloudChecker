@@ -4,6 +4,7 @@ import type { AttributeStats } from '../core/cloud';
 import { LUT_SIZE, paintLUT, sampleLUT } from '../core/colormap';
 import { denormalize } from '../core/state';
 import { fmtNum, h } from './dom';
+import { t } from '../i18n';
 
 export class Legend {
   readonly el: HTMLElement;
@@ -33,7 +34,7 @@ export class Legend {
 
     const trackWrap = h('div', { class: 'legend-track' }, [this.track, this.handleLo, this.handleHi, this.hoverEl]);
     this.el = h('div', { class: 'hud legend' }, [
-      h('div', { class: 'hud-title' }, [h('span', { text: '色标' })]),
+      h('div', { class: 'hud-title' }, [h('span', { text: t('legend.title') })]),
       h('div', { class: 'legend-body' }, [trackWrap, this.scaleEl]),
       this.footEl,
     ]);
@@ -94,7 +95,7 @@ export class Legend {
       this.footEl.appendChild(
         h('span', {
           class: 'mono dim',
-          title: '参与统计的有效点数',
+          title: t('legend.effectivePoints'),
           text: `${opts.stats.valid.toLocaleString()} pts`,
         })
       );
@@ -278,24 +279,37 @@ export class AxisGizmo {
    Small viewport HUD
    ══════════════════════════════════════════════════════════════ */
 
+export interface HudRow {
+  /** Stable key used by `set()` — independent of the displayed language. */
+  key: string;
+  /** Translated label shown on the left of the row. */
+  label: string;
+}
+
 export class InfoHud {
   readonly el: HTMLElement;
+  private titleEl: HTMLElement;
   private rows = new Map<string, HTMLElement>();
 
-  constructor(title: string, keys: string[]) {
+  constructor(title: string, rows: HudRow[]) {
+    this.titleEl = h('span', { text: title });
     const body = h('div', { class: 'hud-body' });
-    for (const k of keys) {
+    for (const r of rows) {
       const row = h('div', { class: 'row', style: 'gap:8px;justify-content:space-between' }, [
-        h('span', { class: 'dim', text: k }),
+        h('span', { class: 'dim', text: r.label }),
         h('span', { class: 'mono', text: '—' }),
       ]);
-      this.rows.set(k, row.lastElementChild as HTMLElement);
+      this.rows.set(r.key, row.lastElementChild as HTMLElement);
       body.appendChild(row);
     }
     this.el = h('div', { class: 'hud' }, [
-      h('div', { class: 'hud-title' }, [h('span', { text: title })]),
+      h('div', { class: 'hud-title' }, [this.titleEl]),
       body,
     ]);
+  }
+
+  setTitle(title: string): void {
+    this.titleEl.textContent = title;
   }
 
   set(key: string, value: string): void {

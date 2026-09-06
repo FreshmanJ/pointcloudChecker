@@ -1,6 +1,7 @@
 /** Left panel — appearance, colour mapping, scene and the colormap editor. */
 
 import type { App } from '../app';
+import { t } from '../i18n';
 import {
   allColormaps, buildLUT, customColormaps, getColormap, LUT_SIZE, paintLUT,
   type ColorStop,
@@ -36,14 +37,13 @@ interface SettingsControls {
   turntable: Control<boolean>;
 }
 
-const TAB_DEFS = [
-  { id: 'display', label: '外观', icon: 'sliders' as const },
-  { id: 'color', label: '色彩', icon: 'palette' as const },
-  { id: 'scene', label: '场景', icon: 'cube' as const },
-  { id: 'lut', label: '色卡库', icon: 'layers' as const },
-];
-
-export function createSettingsPanel(app: App, host: HTMLElement, tabsHost: HTMLElement): void {
+export function createSettingsPanel(app: App, host: HTMLElement, tabsHost: HTMLElement): () => void {
+  const TAB_DEFS = [
+    { id: 'display', label: t('settings.tab.display'), icon: 'sliders' as const },
+    { id: 'color', label: t('settings.tab.color'), icon: 'palette' as const },
+    { id: 'scene', label: t('settings.tab.scene'), icon: 'cube' as const },
+    { id: 'lut', label: t('settings.tab.lut'), icon: 'layers' as const },
+  ];
   const st = app.store.state;
   const R = st.render;
   const pages = new Map<string, HTMLElement>();
@@ -83,69 +83,69 @@ export function createSettingsPanel(app: App, host: HTMLElement, tabsHost: HTMLE
   {
     const p = page('display');
 
-    const sec1 = section('着色', { icon: 'palette' });
+    const sec1 = section(t('settings.coloring'), { icon: 'palette' });
     const mode = segmented<'uniform' | 'attribute' | 'rgb' | 'elevation'>({
       options: [
-        { value: 'attribute', label: '属性', title: '按点上的数值属性着色' },
-        { value: 'rgb', label: '原色', title: '使用文件自带的 RGB 颜色' },
-        { value: 'elevation', label: '高程', title: '按 Z 坐标着色' },
-        { value: 'uniform', label: '单色', title: '统一颜色' },
+        { value: 'attribute', label: t('mode.attribute'), title: t('mode.attributeTitle') },
+        { value: 'rgb', label: t('mode.rgb'), title: t('mode.rgbTitle') },
+        { value: 'elevation', label: t('mode.elevation'), title: t('mode.elevationTitle') },
+        { value: 'uniform', label: t('field.uniform'), title: t('mode.uniformTitle') },
       ],
       value: R.colorMode,
       onChange: (v) => app.setRender({ colorMode: v }),
     });
     const attr = select<string>({
-      label: '属性',
+      label: t('ctrl.attribute'),
       options: app.fieldOptions(),
       value: R.attribute,
       onChange: (v) => app.setRender({ attribute: v }),
     }) as Control<string> & { setOptions(list: Option<string>[], keepValue?: boolean): void };
     const uniform = colorInput({
-      label: '单色',
+      label: t('ctrl.uniform'),
       value: R.uniformColor,
       onChange: (v) => app.setRender({ uniformColor: v }),
     });
     const gain = slider({
-      label: '亮度',
+      label: t('ctrl.gain'),
       min: 0.3, max: 2, step: 0.01,
       value: R.colorGain,
       format: (v) => `${v.toFixed(2)}×`,
       onInput: (v) => app.setRender({ colorGain: v }),
     });
-    sec1.body.appendChild(prop('方式', mode.el));
+    sec1.body.appendChild(prop(t('ctrl.method'), mode.el));
     sec1.body.appendChild(attr.el);
     sec1.body.appendChild(uniform.el);
     sec1.body.appendChild(gain.el);
     p.appendChild(sec1.root);
 
-    const sec2 = section('点渲染', { icon: 'dots' });
+    const sec2 = section(t('settings.pointRender'), { icon: 'dots' });
     const size = slider({
-      label: '点大小',
+      label: t('ctrl.pointSize'),
       min: 0.5, max: 12, step: 0.1,
       value: R.pointSize,
       format: (v) => v.toFixed(1),
       onInput: (v) => app.setRender({ pointSize: v }),
     });
     const sizeMode = segmented<'fixed' | 'world'>({
-      label: '尺寸基准',
+      label: t('ctrl.sizeMode'),
       options: [
-        { value: 'fixed', label: '屏幕像素', title: '点大小固定为屏幕像素' },
-        { value: 'world', label: '世界单位', title: '点大小随距离透视缩放' },
+        { value: 'fixed', label: t('size.screen'), title: t('size.screenTitle') },
+        { value: 'world', label: t('size.world'), title: t('size.worldTitle') },
       ],
       value: R.sizeMode,
       onChange: (v) => app.setRender({ sizeMode: v }),
     });
     const shape = segmented<'circle' | 'square'>({
-      label: '点形状',
+      label: t('ctrl.shape'),
       options: [
-        { value: 'circle', label: '圆形' },
-        { value: 'square', label: '方形' },
+        { value: 'circle', label: t('shape.circle') },
+        { value: 'square', label: t('shape.square') },
       ],
       value: R.shape,
       onChange: (v) => app.setRender({ shape: v }),
     });
     const opacity = slider({
-      label: '不透明度',
+      label: t('ctrl.opacity'),
       min: 0.1, max: 1, step: 0.01,
       value: R.opacity,
       format: (v) => `${Math.round(v * 100)}%`,
@@ -158,20 +158,20 @@ export function createSettingsPanel(app: App, host: HTMLElement, tabsHost: HTMLE
     sec2.body.appendChild(
       h('div', {
         class: 'field-hint',
-        text: '提示：点太多导致卡顿可增大点大小并降低不透明度，或在「功能 → 降采样」中抽稀。',
+        text: t('hint.opacity'),
       })
     );
     p.appendChild(sec2.root);
 
-    const sec3 = section('快捷键', { icon: 'info', collapsed: true });
+    const sec3 = section(t('settings.hotkeys'), { icon: 'info', collapsed: true });
     const keys: [string, string][] = [
-      ['Ctrl/⌘ + O', '打开文件'],
-      ['1 / 2 / 3 / 4', '属性 / 原色 / 高程 / 单色'],
-      ['F', '视角归位'],
-      ['M', '测量模式'],
-      ['Esc', '清除测量'],
-      ['Ctrl + 1/2/3', '折叠左 / 右 / 底部面板'],
-      ['空格', '自动旋转'],
+      ['Ctrl/⌘ + O', t('keys.open')],
+      ['1 / 2 / 3 / 4', t('keys.colorModes')],
+      ['F', t('keys.frame')],
+      ['M', t('keys.measure')],
+      ['Esc', t('keys.clear')],
+      ['Ctrl + 1/2/3', t('keys.collapse')],
+      [t('keys.space'), t('keys.rotate')],
     ];
     const box = h('div', { class: 'col', style: 'gap:5px' });
     for (const [k, v] of keys) {
@@ -200,43 +200,43 @@ export function createSettingsPanel(app: App, host: HTMLElement, tabsHost: HTMLE
   /* ══════════ 色彩 ══════════ */
   {
     const p = page('color');
-    const sec = section('值域映射', { icon: 'chart' });
+    const sec = section(t('settings.rangeMap'), { icon: 'chart' });
     const autoRange = toggle({
-      label: '自动值域（按分位数裁剪）',
+      label: t('ctrl.autoRange'),
       value: R.range.auto,
       onChange: (v) => app.setRange({ auto: v }),
     });
     const clipLow = slider({
-      label: '低端裁剪',
+      label: t('ctrl.clipLow'),
       min: 0, max: 20, step: 0.1,
       value: R.range.clipLow,
       format: (v) => `${v.toFixed(1)}%`,
       onInput: (v) => app.setRange({ clipLow: v }),
     });
     const clipHigh = slider({
-      label: '高端裁剪',
+      label: t('ctrl.clipHigh'),
       min: 0, max: 20, step: 0.1,
       value: R.range.clipHigh,
       format: (v) => `${v.toFixed(1)}%`,
       onInput: (v) => app.setRange({ clipHigh: v }),
     });
     const minInput = numberInput({
-      label: '最小值',
+      label: t('ctrl.min'),
       value: R.range.min,
       onInput: (v) => app.setRange({ min: v }),
     });
     const maxInput = numberInput({
-      label: '最大值',
+      label: t('ctrl.max'),
       value: R.range.max,
       onInput: (v) => app.setRange({ max: v }),
     });
     const log = toggle({
-      label: '对数映射',
+      label: t('ctrl.log'),
       value: R.range.log,
       onChange: (v) => app.setRange({ log: v }),
     });
     const sym = toggle({
-      label: '零值对称（发散色卡）',
+      label: t('ctrl.symmetric'),
       value: R.range.symmetric,
       onChange: (v) => app.setRange({ symmetric: v }),
     });
@@ -249,23 +249,23 @@ export function createSettingsPanel(app: App, host: HTMLElement, tabsHost: HTMLE
     sec.body.appendChild(sym.el);
     p.appendChild(sec.root);
 
-    const sec2 = section('色带调整', { icon: 'palette' });
+    const sec2 = section(t('settings.barAdjust'), { icon: 'palette' });
     const reverse = toggle({
-      label: '反转色带',
+      label: t('ctrl.reverse'),
       value: R.reverse,
       onChange: (v) => app.setRender({ reverse: v }),
     });
     const steps = slider({
-      label: '离散分级',
+      label: t('ctrl.steps'),
       min: 0, max: 32, step: 1,
       value: R.steps,
-      format: (v) => (v < 2 ? '连续' : `${v} 级`),
+      format: (v) => (v < 2 ? t('steps.continuous') : t('steps.levels', { n: v })),
       onInput: (v) => app.setRender({ steps: v }),
     });
     sec2.body.appendChild(reverse.el);
     sec2.body.appendChild(steps.el);
     sec2.body.appendChild(
-      h('div', { class: 'field-hint', text: '离散分级会把连续色带切成 N 个色阶，便于读数与出图。' })
+      h('div', { class: 'field-hint', text: t('hint.steps') })
     );
     p.appendChild(sec2.root);
 
@@ -275,22 +275,22 @@ export function createSettingsPanel(app: App, host: HTMLElement, tabsHost: HTMLE
   /* ══════════ 场景 ══════════ */
   {
     const p = page('scene');
-    const sec = section('环境', { icon: 'cube' });
-    const bg = colorInput({ label: '背景色', value: R.background, onChange: (v) => app.setRender({ background: v }) });
+    const sec = section(t('settings.sceneEnv'), { icon: 'cube' });
+    const bg = colorInput({ label: t('ctrl.bg'), value: R.background, onChange: (v) => app.setRender({ background: v }) });
     const grid = select<'none' | 'xy' | 'xz' | 'yz'>({
-      label: '网格平面',
+      label: t('ctrl.grid'),
       options: [
-        { value: 'none', label: '不显示' },
-        { value: 'xy', label: 'XY 平面' },
-        { value: 'xz', label: 'XZ 平面（水平）' },
-        { value: 'yz', label: 'YZ 平面' },
+        { value: 'none', label: t('grid.none') },
+        { value: 'xy', label: t('grid.xy') },
+        { value: 'xz', label: t('grid.xz') },
+        { value: 'yz', label: t('grid.yz') },
       ],
       value: R.grid,
       onChange: (v) => app.setRender({ grid: v }),
     });
-    const boxT = toggle({ label: '显示包围盒', value: R.showBox, onChange: (v) => app.setRender({ showBox: v }) });
-    const axes = toggle({ label: '显示坐标轴', value: R.showAxes, onChange: (v) => app.setRender({ showAxes: v }) });
-    const turntable = toggle({ label: '自动旋转', value: R.turntable, onChange: (v) => app.setRender({ turntable: v }) });
+    const boxT = toggle({ label: t('ctrl.showBox'), value: R.showBox, onChange: (v) => app.setRender({ showBox: v }) });
+    const axes = toggle({ label: t('ctrl.showAxes'), value: R.showAxes, onChange: (v) => app.setRender({ showAxes: v }) });
+    const turntable = toggle({ label: t('ctrl.turntable'), value: R.turntable, onChange: (v) => app.setRender({ turntable: v }) });
     sec.body.appendChild(bg.el);
     sec.body.appendChild(grid.el);
     sec.body.appendChild(boxT.el);
@@ -298,9 +298,9 @@ export function createSettingsPanel(app: App, host: HTMLElement, tabsHost: HTMLE
     sec.body.appendChild(turntable.el);
     p.appendChild(sec.root);
 
-    const sec2 = section('视角', { icon: 'camera' });
+    const sec2 = section(t('settings.view'), { icon: 'camera' });
     const views: [string, string][] = [
-      ['iso', '等轴'], ['x', 'X+'], ['-x', 'X−'],
+      ['iso', t('view.iso')], ['x', 'X+'], ['-x', 'X−'],
       ['y', 'Y+'], ['-y', 'Y−'], ['z', 'Z+'], ['-z', 'Z−'],
     ];
     const grid2 = h('div', { class: 'grid-3' });
@@ -312,19 +312,19 @@ export function createSettingsPanel(app: App, host: HTMLElement, tabsHost: HTMLE
     sec2.body.appendChild(grid2);
     sec2.body.appendChild(h('div', {
       class: 'field-hint',
-      text: '鼠标可任意方向翻滚，无角度限制；点上方预设视图可重新对齐水平。',
+      text: t('hint.view'),
     }));
 
     // Rotate within a coordinate plane: XY→about Z, YZ→about X, XZ→about Y
-    const rotLabel = h('div', { class: 'field-hint', text: '平面旋转（每步 15°）' });
+    const rotLabel = h('div', { class: 'field-hint', text: t('rot.label') });
     sec2.body.appendChild(rotLabel);
     const planes: ['xy' | 'yz' | 'xz', string][] = [
-      ['xy', 'XY 平面'], ['yz', 'YZ 平面'], ['xz', 'XZ 平面'],
+      ['xy', t('grid.xy')], ['yz', t('grid.yz')], ['xz', t('grid.xz')],
     ];
     for (const [plane, plabel] of planes) {
       const row = h('div', { class: 'rot-row' });
       row.appendChild(h('span', { class: 'rot-plane', text: plabel }));
-      for (const [sign, arrow, title] of [[-1, '↺', `${plabel} 逆时针`], [1, '↻', `${plabel} 顺时针`]] as [number, string, string][]) {
+      for (const [sign, arrow, title] of [[-1, '↺', t('rot.ccw')], [1, '↻', t('rot.cw')]] as [number, string, string][]) {
         const b = h('button', { class: 'btn btn-sm', type: 'button', text: arrow, title });
         b.addEventListener('click', () => app.viewer.rotateInPlane(plane, sign * 15));
         row.appendChild(b);
@@ -333,22 +333,22 @@ export function createSettingsPanel(app: App, host: HTMLElement, tabsHost: HTMLE
     }
 
     const fit = h('button', { class: 'btn btn-sm btn-block', type: 'button' }, [
-      icon('frame', 13), h('span', { text: '缩放至全部 (F)' }),
+      icon('frame', 13), h('span', { text: t('btn.frameAll') }),
     ]);
     fit.addEventListener('click', () => app.frameAll());
     sec2.body.appendChild(fit);
     p.appendChild(sec2.root);
 
-    const sec3 = section('性能与拾取', { icon: 'sliders', collapsed: true });
+    const sec3 = section(t('settings.perf'), { icon: 'sliders', collapsed: true });
     const pickScale = slider({
-      label: '拾取容差',
+      label: t('ctrl.pickTol'),
       min: 0.4, max: 6, step: 0.1,
       value: app.pickScale,
       format: (v) => `${v.toFixed(1)}×`,
       onInput: (v) => { app.pickScale = v; },
     });
     const pixelRatio = slider({
-      label: '渲染倍率',
+      label: t('ctrl.pixelRatio'),
       min: 0.5, max: 2, step: 0.25,
       value: app.pixelRatioCap,
       format: (v) => `${v.toFixed(2)}×`,
@@ -357,7 +357,7 @@ export function createSettingsPanel(app: App, host: HTMLElement, tabsHost: HTMLE
     sec3.body.appendChild(pickScale.el);
     sec3.body.appendChild(pixelRatio.el);
     sec3.body.appendChild(
-      h('div', { class: 'field-hint', text: '降低渲染倍率可显著提升大点云的帧率；拾取容差越大越容易选中点。' })
+      h('div', { class: 'field-hint', text: t('hint.perf') })
     );
     p.appendChild(sec3.root);
 
@@ -423,8 +423,7 @@ export function createSettingsPanel(app: App, host: HTMLElement, tabsHost: HTMLE
     editor.syncSelection();
   };
 
-  app.store.on(sync);
-  sync(new Set(['cloud']));
+  return app.store.on(sync);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -443,33 +442,33 @@ class ColormapEditor {
   constructor(app: App) {
     this.app = app;
 
-    const secLib = section('色卡库', { icon: 'layers' });
+    const secLib = section(t('lut.lib'), { icon: 'layers' });
     this.itemsEl = h('div', { class: 'cm-list' });
     secLib.body.appendChild(this.itemsEl);
 
-    const secEdit = section('色标编辑器', { icon: 'wand' });
+    const secEdit = section(t('lut.editor'), { icon: 'wand' });
     this.preview = h('canvas', { class: 'cm-preview', style: 'height:22px' }) as HTMLCanvasElement;
     secEdit.body.appendChild(this.preview);
 
-    this.nameInput = h('input', { class: 'input', placeholder: '自定义色卡名称' }) as HTMLInputElement;
+    this.nameInput = h('input', { class: 'input', placeholder: t('lut.namePlaceholder') }) as HTMLInputElement;
     this.nameInput.addEventListener('input', () => {
       if (this.editing) this.editing.name = this.nameInput.value;
     });
-    secEdit.body.appendChild(prop('名称', this.nameInput));
+    secEdit.body.appendChild(prop(t('lut.name'), this.nameInput));
 
     this.stopsEl = h('div', { class: 'cm-stops' });
     secEdit.body.appendChild(this.stopsEl);
 
     const actions = h('div', { class: 'row', style: 'gap:6px;flex-wrap:wrap' }, [
-      miniButton('plus', '添加色标', () => this.addStop()),
-      miniButton('copy', '从此复制', () => this.duplicate()),
-      miniButton('save', '保存为自定义', () => this.save(), true),
+      miniButton('plus', t('lut.add'), () => this.addStop()),
+      miniButton('copy', t('lut.duplicate'), () => this.duplicate()),
+      miniButton('save', t('lut.save'), () => this.save(), true),
     ]);
     secEdit.body.appendChild(actions);
 
     const io = h('div', { class: 'row', style: 'gap:6px' }, [
-      miniButton('download', '导出色卡', () => this.exportJson()),
-      miniButton('upload', '导入色卡', () => {
+      miniButton('download', t('lut.export'), () => this.exportJson()),
+      miniButton('upload', t('lut.import'), () => {
         (document.getElementById('lutInput') as HTMLInputElement | null)?.click();
       }),
     ]);
@@ -477,7 +476,7 @@ class ColormapEditor {
     secEdit.body.appendChild(
       h('div', {
         class: 'field-hint',
-        text: '色标位置 t ∈ [0,1]。自定义色卡保存在浏览器本地，可导出为 JSON 迁移。',
+        text: t('lut.hint'),
       })
     );
 
@@ -525,7 +524,7 @@ class ColormapEditor {
     if (!cm) return;
     this.editing = {
       id: cm.builtin ? '' : cm.id,
-      name: cm.builtin ? `${cm.name} 副本` : cm.name,
+      name: cm.builtin ? `${cm.name}${t('lut.copySuffix')}` : cm.name,
       stops: cm.stops.map((s) => ({ ...s })),
     };
     this.nameInput.value = this.editing.name;
@@ -537,11 +536,11 @@ class ColormapEditor {
     if (!this.editing) return;
     this.editing = {
       id: '',
-      name: this.nameInput.value || '自定义色卡',
+      name: this.nameInput.value || t('lut.customName'),
       stops: this.editing.stops.map((s) => ({ ...s })),
     };
     this.renderStops();
-    toast('info', '已复制为可编辑副本', '修改后点击「保存为自定义」。');
+    toast('info', t('lut.copied'), t('lut.copiedDesc'));
   }
 
   private addStop(): void {
@@ -591,13 +590,13 @@ class ColormapEditor {
       });
       const swatch = h('span', { class: 'swatch-btn' }, [color]);
 
-      const del = h('button', { class: 'icon-btn icon-btn-sm', type: 'button', title: '删除色标' }, [
+      const del = h('button', { class: 'icon-btn icon-btn-sm', type: 'button', title: t('lut.deleteStop') }, [
         icon('trash', 12),
       ]);
       del.addEventListener('click', () => {
         if (!this.editing) return;
         if (this.editing.stops.length <= 2) {
-          toast('warn', '至少需要 2 个色标');
+          toast('warn', t('lut.needTwo'));
           return;
         }
         this.editing.stops.splice(i, 1);
@@ -617,7 +616,7 @@ class ColormapEditor {
       );
     });
     if (stops.length === 0) {
-      this.stopsEl.appendChild(emptyState('没有色标，点击「添加色标」开始。'));
+      this.stopsEl.appendChild(emptyState(t('lut.emptyStops')));
     }
   }
 
@@ -644,7 +643,7 @@ class ColormapEditor {
 
   private save(): void {
     if (!this.editing) return;
-    const name = this.nameInput.value.trim() || '自定义色卡';
+    const name = this.nameInput.value.trim() || t('lut.customName');
     const id = this.editing.id || `custom_${Date.now().toString(36)}`;
     this.app.saveCustomColormap(id, name, this.editing.stops.map((s) => ({ ...s })));
     this.editing.id = id;
@@ -656,7 +655,7 @@ class ColormapEditor {
   private exportJson(): void {
     const list = customColormaps();
     if (list.length === 0) {
-      toast('warn', '还没有自定义色卡', '先点击「从此复制」再保存。');
+      toast('warn', t('lut.noCustom'), t('lut.noCustomDesc'));
       return;
     }
     this.app.exportColormaps(list);

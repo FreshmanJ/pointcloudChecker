@@ -14,7 +14,7 @@ PointCloud Inspector 是一个用于加载、校验、可视化和分析三维�
 
 英文版请见：[README.md](README.md)
 
-![PointCloud Inspector — 总览](docs/shots/overview.png)
+![PointCloud Inspector — 总览](docs/shots/zh/overview.png)
 
 ---
 
@@ -55,7 +55,7 @@ PointCloud Inspector 是一个用于加载、校验、可视化和分析三维�
 
 支持按任意标量属性着色、按文件自带的 RGB 着色、按高程（Z 轴）着色，或使用单一颜色。"色卡库"内置了多种色板（viridis、terrain、thermal、jet …），并会根据属性名称**自动匹配**合适的色板（例如包含 *temp* / *°C* 的字段会自动使用 *thermal*）。你也可以导入自定义 JSON 色板。
 
-![上色 —— 自动映射、分位数裁剪、对数 / 零点偏移](docs/shots/coloring.png)
+![上色 —— 自动映射、分位数裁剪、对数 / 零点偏移](docs/shots/zh/coloring.png)
 
 控制项包括基于分位数的低 / 高裁剪、对数映射、零点偏移、反转，以及适合具有"中点"语义的字段的发散（diverging）模式。
 
@@ -63,25 +63,25 @@ PointCloud Inspector 是一个用于加载、校验、可视化和分析三维�
 
 "场景"页提供对场景的细粒度控制：视口背景色、网格平面（无 / XY / XZ / YZ）、包围盒、坐标轴、自动旋转（转台）、一键视角预设（等轴、±X / ±Y / ±Z）、按平面旋转以及"框选全部"。深色 / 浅色主题会自动联动面板和画布背景。
 
-![场景 —— 环境、视角预设、旋转、性能](docs/shots/scene.png)
+![场景 —— 环境、视角预设、旋转、性能](docs/shots/zh/scene.png)
 
 ### 智能降采样
 
 "采样"页提供四种策略 —— **体素（voxel）**、**随机（random）**、**等距（uniform）**、**不采样（none）** —— 全部基于索引缓冲区操作，源数组不会被复制。目标点数可显式指定或自动估算；启用 *目标* 模式时体素边长会自动估算。快捷预设（`100k / 300k / 800k / 1.5M / 3M`）覆盖了常见的可操作集合大小。"降采样统计"卡片实时显示点数与压缩比。
 
-![降采样 —— 体素 / 随机 / 等距、快速目标、实时统计](docs/shots/downsample.png)
+![降采样 —— 体素 / 随机 / 等距、快速目标、实时统计](docs/shots/zh/downsample.png)
 
 ### 合规校验
 
 每份新加载的点云都会经过合规检查，自动发现无效坐标、重复率、异常的坐标量级（通常是单位错误）以及携带 RGB 的点占比。"合规报告"面板一目了然地展示所有问题，并在点云超过软上限时给出推荐的目标点数。
 
-![合规报告 —— 问题列表与建议](docs/shots/report.png)
+![合规报告 —— 问题列表与建议](docs/shots/zh/report.png)
 
 ### 非破坏性筛选
 
 可以针对 X / Y / Z 坐标或命名的标量属性建立任意数量的规则，支持 **范围（range）** 模式（最小 / 最大值）或 **集合（set）** 模式（例如 LAS 分类码）。多条规则以 **AND / OR** 逻辑组合，可单独启用 / 禁用，并且可以与降采样、着色叠加使用，而不会修改源数据。"筛选结果"卡片实时显示每一步之后保留了多少点。
 
-![筛选 —— 范围 / 集合规则，AND / OR 组合逻辑](docs/shots/filters.png)
+![筛选 —— 范围 / 集合规则，AND / OR 组合逻辑](docs/shots/zh/filters.png)
 
 ### 剖面 / 剖切分析
 
@@ -89,7 +89,7 @@ PointCloud Inspector 是一个用于加载、校验、可视化和分析三维�
 
 线段在[线段测量（截线测量）](#线段测量截线测量)中定义。
 
-![剖面分析 —— 剖面定义与统计面板](docs/shots/profile.png)
+![剖面分析 —— 剖面定义与统计面板](docs/shots/zh/profile.png)
 
 ### 线段测量（截线测量）
 
@@ -97,7 +97,7 @@ PointCloud Inspector 是一个用于加载、校验、可视化和分析三维�
 
 你定义的这条线段同时驱动"剖面 / 剖切分析"：A、B 两点确定后，分析器会沿线段周围的圆柱形管道采样，并归约为一维曲线（见[剖面 / 剖切分析](#剖面--剖切分析)）。
 
-![线段测量 —— 拾取 A、B，线段叠加与长度读数](docs/shots/measure.png)
+![线段测量 —— 拾取 A、B，线段叠加与长度读数](docs/shots/zh/measure.png)
 
 ### 点选取
 
@@ -107,7 +107,7 @@ PointCloud Inspector 是一个用于加载、校验、可视化和分析三维�
 
 顶栏的相机按钮会打开**图像导出**对话框。可配置可选的标题、开关色卡 / 图例，并选择输出尺寸（匹配视口或固定分辨率），随后将当前渲染的视口导出为 **PNG**。背景遵循场景设置，因此导出结果与屏幕所见完全一致。
 
-![图像导出 —— 标题、色卡与尺寸选项](docs/shots/export.png)
+![图像导出 —— 标题、色卡与尺寸选项](docs/shots/zh/export.png)
 
 ### 数据与会话导出
 
@@ -201,7 +201,7 @@ pointcloudChecker/
 │  │  ├─ columnDialog.ts   # 文本列映射对话框
 │  │  ├─ legend.ts chart.ts controls.ts dom.ts
 │  └─ styles/              # 设计令牌 → 基础 → 组件 → 应用外壳
-├─ docs/shots/             # README 截图（由 scripts/readme-shots.mjs 重新生成）
+├─ docs/shots/             # README 截图，按语言分目录：en/（英文界面）、zh/（中文界面）
 ├─ scripts/                # 构建 / CI 烟测与交互探测脚本
 └─ vite.config.ts
 ```
@@ -233,7 +233,7 @@ pointcloudChecker/
 | `npm run typecheck` | 仅运行 TypeScript 类型检查。 |
 | `npm run smoke` | 核心解析管道的 Node 烟测。 |
 | `npm run smoke:browser` | 无头浏览器交互烟测。 |
-| `node scripts/readme-shots.mjs` | 重新生成 README 截图到 `docs/shots/`（需要先 `npm run dev` 启动 `:5173`）。 |
+| `node scripts/readme-shots.mjs [url] [lang]` | 按指定语言重新生成 README 截图到 `docs/shots/<lang>/`（需先 `npm run dev`；默认 `en`）。 |
 
 ---
 

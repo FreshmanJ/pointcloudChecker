@@ -3,6 +3,7 @@
  */
 
 import { finishCloud, type ProgressFn } from './common';
+import { t, tMeta } from '../i18n';
 import type { ParseOutcome } from './common';
 
 export async function parseRawBinary(file: File, onProgress?: ProgressFn): Promise<ParseOutcome> {
@@ -14,7 +15,7 @@ export async function parseRawBinary(file: File, onProgress?: ProgressFn): Promi
     if (buf.byteLength % (s * 4) === 0) { stride = s; break; }
   }
   const count = Math.floor(buf.byteLength / (stride * 4));
-  if (count <= 0) throw new Error('文件不是有效的 float32 三元组流');
+  if (count <= 0) throw new Error(t('io.err.rawFmt'));
 
   const f32 = new Float32Array(buf);
   const positions = new Float32Array(count * 3);
@@ -27,7 +28,7 @@ export async function parseRawBinary(file: File, onProgress?: ProgressFn): Promi
   const scalars = new Map<string, Float32Array>();
   const scalarOrder: string[] = [];
   if (stride >= 4) {
-    warnings.push(`按每行 ${stride} 个 float32 解释：x y z${stride > 3 ? ' + 附加字段' : ''}。`);
+    warnings.push(t('io.warn.rawStride', { s: stride, extra: stride > 3 ? ' + 附加字段' : '' }));
     for (let c = 3; c < stride; c++) {
       const name = `field_${c + 1}`;
       const arr = new Float32Array(count);
@@ -38,10 +39,10 @@ export async function parseRawBinary(file: File, onProgress?: ProgressFn): Promi
   }
 
   const data = finishCloud(
-    { count, positions, colors: null, scalars, scalarOrder, warnings, meta: { 步长: `${stride}×float32` } },
+    { count, positions, colors: null, scalars, scalarOrder, warnings, meta: { [tMeta('步长')]: `${stride}×float32` } },
     file.name,
     'BIN'
   );
-  onProgress?.(1, '完成');
+  onProgress?.(1, t('io.prog.done'));
   return { data, warnings };
 }

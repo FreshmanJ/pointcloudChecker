@@ -267,6 +267,137 @@ textarea.input {
   color: var(--text-1);
 }
 
+/* ---- Language selector (custom dropdown, replaces the native <select>) ---- */
+.lang {
+  position: relative;
+  display: inline-flex;
+}
+.lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 7px 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--bg-elevated);
+  color: var(--text-1);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease),
+    box-shadow var(--dur-1) var(--ease);
+}
+.lang-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.lang-caret {
+  width: 12px !important;
+  height: 12px !important;
+  opacity: 0.7;
+  transition: transform var(--dur-2) var(--ease-out);
+}
+.lang.is-open .lang-caret {
+  transform: rotate(180deg);
+}
+.lang-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--btn-hover-border);
+}
+.lang-btn:active {
+  background: var(--bg-active);
+}
+.lang-btn:focus-visible {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Popup menu (drops down over the workspace, above it in z-order) */
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 134px;
+  padding: 4px;
+  display: none;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 60;
+}
+.lang.is-open .lang-menu {
+  display: flex;
+  animation: lang-pop var(--dur-2) var(--ease-out);
+}
+@keyframes lang-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+.lang-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: var(--fs-md);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.lang-opt:hover {
+  background: var(--bg-hover);
+  color: var(--text-1);
+}
+.lang-opt:focus-visible {
+  outline: none;
+  background: var(--bg-hover);
+  color: var(--text-1);
+  box-shadow: inset 0 0 0 1px var(--border-focus);
+}
+.lang-opt.is-on {
+  color: var(--text-1);
+  background: var(--accent-soft);
+}
+.lang-check {
+  width: 14px !important;
+  height: 14px !important;
+  fill: none;
+  stroke: var(--accent-hi);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  margin-left: auto;
+}
+.lang-opt:not(.is-on) .lang-check {
+  visibility: hidden; /* keep label alignment, hide the tick on inactive rows */
+}
+.lang-opt.is-on .lang-check {
+  opacity: 1;
+}
+
 /* ---- Range slider ---- */
 .slider {
   -webkit-appearance: none;

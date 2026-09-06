@@ -10,6 +10,7 @@
 
 import { autoCoordIndices } from '../io/text';
 import type { ColumnSelection, TextColumnPreview } from '../io/common';
+import { t } from '../i18n';
 import { h, icon } from './dom';
 
 /**
@@ -31,18 +32,18 @@ export function askColumnSelection(preview: TextColumnPreview): Promise<ColumnSe
     };
 
     const delimLabel =
-      preview.delim === 44 ? ',' : preview.delim === 59 ? ';' : preview.delim === 9 ? 'Tab' : '空格';
+      preview.delim === 44 ? ',' : preview.delim === 59 ? ';' : preview.delim === 9 ? 'Tab' : t('keys.space');
 
     /* ── mode segmented control ── */
-    const seg2d = h('button', { class: 'seg-btn', type: 'button', text: '二维 (2D)' });
+    const seg2d = h('button', { class: 'seg-btn', type: 'button', text: t('col.2d') });
     const seg3d = h('button', {
       class: 'seg-btn',
       type: 'button',
-      text: '三维 (3D)',
+      text: t('col.3d'),
     }) as HTMLButtonElement;
     if (!can3d) {
       seg3d.disabled = true;
-      seg3d.title = '列数不足 3 列，无法选择三维';
+      seg3d.title = t('col.3dDisabled');
     }
     seg2d.classList.toggle('is-on', state.mode === '2d');
     seg3d.classList.toggle('is-on', state.mode === '3d');
@@ -51,7 +52,7 @@ export function askColumnSelection(preview: TextColumnPreview): Promise<ColumnSe
     /* ── per-axis column selectors ── */
     const validityText = (col: { validCount: number; name: string }): string => {
       const ratio = preview.sampledRows > 0 ? `${col.validCount}/${preview.sampledRows}` : `${col.validCount}`;
-      return col.validCount === 0 ? ` (${ratio} 有效 ⚠ 非数值)` : ` (${ratio} 有效)`;
+      return col.validCount === 0 ? t('col.validCount', { n: ratio }) : t('col.validCountN', { n: ratio });
     };
     const buildSelect = (axis: 'x' | 'y' | 'z'): HTMLSelectElement => {
       const sel = h('select', { class: 'select' }) as HTMLSelectElement;
@@ -59,7 +60,7 @@ export function askColumnSelection(preview: TextColumnPreview): Promise<ColumnSe
         const col = preview.columns[c];
         const sample = col.sample.length ? col.sample.map(fmtSample).join(', ') : '—';
         sel.appendChild(
-          h('option', { value: String(c) }, [`列 ${c + 1} · ${col.name}  ≈ ${sample}${validityText(col)}`])
+          h('option', { value: String(c) }, [t('col.colSample', { n: c + 1, name: col.name, sample, valid: validityText(col) })])
         );
       }
       sel.value = String(state[axis]);
@@ -81,33 +82,33 @@ export function askColumnSelection(preview: TextColumnPreview): Promise<ColumnSe
         h('div', { class: 'select-wrap' }, [sel]),
       ]);
 
-    const xField = mkField('X 坐标列', xSel);
-    const yField = mkField('Y 坐标列', ySel);
-    const zField = mkField('Z 坐标列', zSel);
+    const xField = mkField(t('col.xCol'), xSel);
+    const yField = mkField(t('col.yCol'), ySel);
+    const zField = mkField(t('col.zCol'), zSel);
     zField.hidden = state.mode !== '3d';
     const grid = h('div', { class: 'modal-cols' }, [xField, yField, zField]);
 
     const previewEl = h('div', { class: 'modal-preview' });
     const errEl = h('div', { class: 'modal-err', hidden: true });
     const note = h('div', { class: 'field-hint modal-note' }, [
-      '二维模式：Z 坐标固定为 0（适用于平面 / 投影点云）。',
+      t('col.optNote'),
     ]);
     note.hidden = state.mode !== '2d';
 
     const modeField = h('div', { class: 'field' }, [
-      h('label', { class: 'field-label' }, ['维度']),
+      h('label', { class: 'field-label' }, [t('col.dim')]),
       seg,
     ]);
 
     const body = h('div', { class: 'modal-body' }, [modeField, grid, errEl, previewEl, note]);
 
     /* ── header / footer ── */
-    const title = h('div', { class: 'modal-title' }, ['选择坐标列']);
+    const title = h('div', { class: 'modal-title' }, [t('col.title')]);
     const sub = h('div', {
       class: 'modal-sub',
-      text: `共 ${ncols} 列 · 分隔符「${delimLabel}」· ${preview.hasHeader ? '含表头' : '无表头'}`,
+      text: t('col.sub', { n: ncols, d: delimLabel, header: preview.hasHeader ? t('col.hasHeader') : t('col.noHeader') }),
     });
-    const closeBtn = h('button', { class: 'icon-btn modal-close', type: 'button', title: '取消' }, [
+    const closeBtn = h('button', { class: 'icon-btn modal-close', type: 'button', title: t('col.cancel') }, [
       icon('close', 15),
     ]);
     const head = h('div', { class: 'modal-head' }, [
@@ -115,8 +116,8 @@ export function askColumnSelection(preview: TextColumnPreview): Promise<ColumnSe
       closeBtn,
     ]);
 
-    const cancelBtn = h('button', { class: 'btn btn-ghost', type: 'button', text: '取消' });
-    const okBtn = h('button', { class: 'btn btn-primary', type: 'button', text: '确定载入' });
+    const cancelBtn = h('button', { class: 'btn btn-ghost', type: 'button', text: t('col.cancel') });
+    const okBtn = h('button', { class: 'btn btn-primary', type: 'button', text: t('col.confirm') });
     const foot = h('div', { class: 'modal-foot' }, [cancelBtn, okBtn]);
 
     const card = h('div', { class: 'modal' }, [head, body, foot]);
@@ -147,21 +148,21 @@ export function askColumnSelection(preview: TextColumnPreview): Promise<ColumnSe
       const axes: Array<[string, number]> = [['X', state.x], ['Y', state.y]];
       if (state.mode === '3d') axes.push(['Z', state.z]);
       previewEl.innerHTML = '';
-      previewEl.appendChild(h('div', { class: 'modal-preview-label', text: '当前选择预览' }));
+      previewEl.appendChild(h('div', { class: 'modal-preview-label', text: t('col.previewLabel') }));
       for (const [ax, c] of axes) {
         const col = preview.columns[c];
         const sample = col && col.sample.length ? col.sample.map(fmtSample).join(', ') : '—';
         const validity = col ? validityText(col) : '';
         previewEl.appendChild(
           h('div', { class: 'modal-preview-row' }, [
-            `${ax} = 列 ${c + 1}（${col ? col.name : '?'}）  ≈ ${sample}${validity}`,
+            t('col.previewRow', { ax, c: c + 1, name: col ? col.name : '?', sample, valid: validity }),
           ])
         );
       }
       const predicted = predictedValidCount();
       const total = preview.rows.length;
       const predRow = h('div', { class: 'modal-preview-row modal-pred' }, [
-        `预计有效点：${predicted} / ${total}（采样行）`,
+        t('col.predicted', { p: predicted, t: total }),
       ]);
       if (predicted === 0 && total > 0) predRow.classList.add('is-warn');
       previewEl.appendChild(predRow);
@@ -190,14 +191,14 @@ export function askColumnSelection(preview: TextColumnPreview): Promise<ColumnSe
       for (let k = 0; k < axes.length; k++) {
         const c = axes[k];
         if (used.has(c)) {
-          errEl.textContent = 'X / Y' + (state.mode === '3d' ? ' / Z' : '') + ' 必须选择不同的列。';
+          errEl.textContent = t('col.distinct');
           errEl.hidden = false;
           return;
         }
         used.add(c);
         const col = preview.columns[c];
         if (col && col.validCount === 0) {
-          errEl.textContent = `${axisNames[k]} 列（列 ${c + 1} · ${col.name}）在 ${preview.sampledRows} 行样本中无任何有效数字，请选择数值列。`;
+          errEl.textContent = t('col.noNumber', { axis: axisNames[k], c: c + 1, name: col.name, n: preview.sampledRows });
           errEl.hidden = false;
           return;
         }
@@ -207,7 +208,7 @@ export function askColumnSelection(preview: TextColumnPreview): Promise<ColumnSe
       // yields an empty cloud, so block it here with a clear reason.
       const predicted = predictedValidCount();
       if (predicted === 0) {
-        errEl.textContent = `所选 X / Y${state.mode === '3d' ? ' / Z' : ''} 坐标列在 ${preview.rows.length} 行样本中没有任何一行同时包含有效数值，载入将得到空点云。请重新选择坐标列或检查分隔符。`;
+        errEl.textContent = t('col.noRow', { n: preview.rows.length });
         errEl.hidden = false;
         return;
       }

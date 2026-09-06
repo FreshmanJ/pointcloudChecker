@@ -7,6 +7,7 @@
  */
 
 import type { PointCloudData } from '../core/cloud';
+import { t, tMeta } from '../i18n';
 import { finishCloud, yieldUI, type ProgressFn } from './common';
 import type { ParseOutcome } from './common';
 
@@ -81,10 +82,10 @@ export interface ExtraByteDef {
 }
 
 export function parseLasHeader(buf: ArrayBuffer): LasHeader {
-  if (buf.byteLength < 227) throw new Error('文件过小，不是有效的 LAS/LAZ 文件');
+  if (buf.byteLength < 227) throw new Error(t('io.err.lasTooSmall'));
   const dv = new DataView(buf);
   const sig = String.fromCharCode(dv.getUint8(0), dv.getUint8(1), dv.getUint8(2), dv.getUint8(3));
-  if (sig !== 'LASF') throw new Error('不是有效的 LAS/LAZ 文件（缺少 LASF 魔数）');
+  if (sig !== 'LASF') throw new Error(t('io.err.lasMagic'));
 
   const versionMajor = dv.getUint8(24);
   const versionMinor = dv.getUint8(25);
@@ -244,7 +245,7 @@ export function decodePoints(
   extraDefs: ExtraByteDef[],
   targets: LasTargets,
   onProgress?: ProgressFn,
-  label = '解析点记录…'
+  label = t('io.prog.lasParseRec')
 ): Promise<{ maxR: number; maxG: number; maxB: number }> {
   const pf = h.pointFormat;
   const stride = h.pointLength;
@@ -407,14 +408,14 @@ export function buildLasCloud(
         const v = rgb[i] * shift;
         colors[i] = v < 0 ? 0 : v > 255 ? 255 : v;
       }
-      if (peak === 0) warnings.push('RGB 波段全为 0，颜色信息可能缺失。');
+      if (peak === 0) warnings.push(t('io.warn.lasRgbZero'));
     }
 
     if (extraDefs.length === 0) {
       const stdLength = h.pointFormat >= 6 ? (NEW_LENGTH[h.pointFormat] ?? 30) : (LEGACY_LENGTH[h.pointFormat] ?? 20);
       if (h.pointLength > stdLength) {
         warnings.push(
-          `点记录长度 ${h.pointLength} 字节比标准格式 ${h.pointFormat} 的 ${stdLength} 字节多出 ${h.pointLength - stdLength} 字节，但未声明 Extra Bytes VLR，已忽略。`
+          t('io.warn.lasExtraIgnored', { p: h.pointLength, f: h.pointFormat, s: stdLength, d: h.pointLength - stdLength })
         );
       }
     }
@@ -429,12 +430,12 @@ export function buildLasCloud(
         units,
         warnings,
         meta: {
-          版本: `${h.versionMajor}.${h.versionMinor}`,
-          点格式: String(h.pointFormat),
-          点记录长度: `${h.pointLength} B`,
-          缩放: h.scale.map((v) => v.toExponential(2)).join(' / '),
-          偏移: h.offset.map((v) => v.toFixed(2)).join(' / '),
-          头长度: `${h.headerSize} B`,
+          [tMeta('版本')]: `${h.versionMajor}.${h.versionMinor}`,
+          [tMeta('点格式')]: String(h.pointFormat),
+          [tMeta('点记录长度')]: `${h.pointLength} B`,
+          [tMeta('缩放')]: h.scale.map((v) => v.toExponential(2)).join(' / '),
+          [tMeta('偏移')]: h.offset.map((v) => v.toFixed(2)).join(' / '),
+          [tMeta('头长度')]: `${h.headerSize} B`,
         },
       },
       file.name,
@@ -447,16 +448,16 @@ export function buildLasCloud(
 /* ────────── public entry points ────────── */
 
 export async function parseLAS(file: File, onProgress?: ProgressFn): Promise<ParseOutcome> {
-  onProgress?.(0.05, '读取文件…');
+  onProgress?.(0.05, t('io.prog.readFile'));
   const buf = await file.arrayBuffer();
   const h = parseLasHeader(buf);
-  onProgress?.(0.12, '解析 VLR…');
+  onProgress?.(0.12, t('io.prog.parseVlr'));
 
-  if (h.count <= 0) throw new Error('LAS 头部声明的点数为 0');
+  if (h.count <= 0) throw new Error(t('io.err.lasZeroPts'));
   const expectedBytes = h.count * h.pointLength;
   if (h.offsetToPoints + expectedBytes > buf.byteLength) {
     const usable = Math.floor((buf.byteLength - h.offsetToPoints) / h.pointLength);
-    if (usable <= 0) throw new Error('点数据区超出文件末尾，文件可能已损坏');
+    if (usable <= 0) throw new Error(t('io.err.lasDataOverflow'));
   }
 
   const { extra, crs } = parseVLRs(buf, h);
@@ -478,14 +479,14 @@ export async function parseLAS(file: File, onProgress?: ProgressFn): Promise<Par
 
   const warnings: string[] = [];
   if (extra.length > extraDefs.length) {
-    warnings.push(`Extra Bytes 声明的字段总长超出点记录尾部空间，已截断读取 ${extraDefs.length}/${extra.length} 个。`);
+    warnings.push(t('io.warn.lasExtraTrunc', { a: extraDefs.length, b: extra.length }));
   }
   const usable = Math.min(
     h.count,
     Math.max(0, Math.floor((buf.byteLength - h.offsetToPoints) / h.pointLength))
   );
   if (usable < h.count) {
-    warnings.push(`声明 ${h.count.toLocaleString()} 点，实际数据仅包含 ${usable.toLocaleString()} 点，已按实际读取。`);
+    warnings.push(t('io.warn.lasTruncRead', { c: h.count.toLocaleString(), u: usable.toLocaleString() }));
   }
 
   const dv = new DataView(buf);
@@ -496,18 +497,18 @@ export async function parseLAS(file: File, onProgress?: ProgressFn): Promise<Par
     (targets) => decodePoints(dv, h.offsetToPoints, usable, h, extraDefs, targets, onProgress),
     warnings
   );
-  if (crs) out.data.meta['坐标系'] = crs;
-  onProgress?.(1, '完成');
+  if (crs) out.data.meta[tMeta('坐标系')] = crs;
+  onProgress?.(1, t('io.prog.done'));
   return out;
 }
 
 export async function parseLAZ(file: File, onProgress?: ProgressFn): Promise<ParseOutcome> {
-  onProgress?.(0.03, '读取文件…');
+  onProgress?.(0.03, t('io.prog.readFile'));
   const buf = await file.arrayBuffer();
   const h = parseLasHeader(buf);
-  if (h.count <= 0) throw new Error('LAZ 头部声明的点数为 0');
+  if (h.count <= 0) throw new Error(t('io.err.lazZeroPts'));
 
-  onProgress?.(0.1, '解析 VLR…');
+  onProgress?.(0.1, t('io.prog.parseVlr'));
   const { extra, crs } = parseVLRs(buf, h);
   const stdLength = h.pointFormat >= 6 ? (NEW_LENGTH[h.pointFormat] ?? 30) : (LEGACY_LENGTH[h.pointFormat] ?? 20);
   const extraBlock = Math.max(0, h.pointLength - stdLength);
@@ -519,19 +520,19 @@ export async function parseLAZ(file: File, onProgress?: ProgressFn): Promise<Par
     cursor += d.size;
   }
 
-  onProgress?.(0.16, '加载 LAZ 解码器…');
+  onProgress?.(0.16, t('io.prog.lazDecoder'));
   await yieldUI();
   const { decompressLaz } = await import('./laz');
   const body = await decompressLaz(buf, onProgress);
-  onProgress?.(0.6, '解压完成，解析点记录…');
+  onProgress?.(0.6, t('io.prog.lazDecompress'));
   await yieldUI();
 
   const dv = new DataView(body);
   const stride = h.pointLength;
   const usable = Math.min(h.count, Math.floor(body.byteLength / stride));
-  const warnings: string[] = ['LAZ 已通过 laz-perf (WASM) 解压。'];
+  const warnings: string[] = [t('io.warn.lazWasm')];
   if (usable < h.count) {
-    warnings.push(`解压后仅 ${usable.toLocaleString()} / ${h.count.toLocaleString()} 点记录。`);
+    warnings.push(t('io.warn.lazTrunc', { u: usable.toLocaleString(), c: h.count.toLocaleString() }));
   }
 
   const out = await buildLasCloud(
@@ -541,7 +542,7 @@ export async function parseLAZ(file: File, onProgress?: ProgressFn): Promise<Par
     (targets) => decodePoints(dv, 0, usable, h, extraDefs, targets, (r, l) => onProgress?.(0.6 + 0.35 * r, l)),
     warnings
   );
-  if (crs) out.data.meta['坐标系'] = crs;
-  onProgress?.(1, '完成');
+  if (crs) out.data.meta[tMeta('坐标系')] = crs;
+  onProgress?.(1, t('io.prog.done'));
   return out;
 }

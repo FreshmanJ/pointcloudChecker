@@ -5,6 +5,7 @@
 import type { PointCloudData } from '../core/cloud';
 import { extOf, type ColumnSelection, type ProgressFn } from './common';
 import type { ParseOutcome } from './common';
+import { t } from '../i18n';
 
 /** Re-exported so callers can detect delimited-text formats without reaching
  *  into the `common` module directly. */
@@ -66,7 +67,7 @@ export async function loadPointCloud(
   let format = ext;
   if (!SUPPORTED_FORMATS.some((f) => f.ext === ext)) {
     format = await sniffFormat(file);
-    onProgress?.(0.02, `按内容识别为 ${format.toUpperCase()}`);
+    onProgress?.(0.02, t('io.sniff', { f: format.toUpperCase() }));
   }
 
   switch (format) {
@@ -117,5 +118,5 @@ export function formatBytes(n: number): string {
 }
 
 export function describeCloud(data: PointCloudData): string {
-  return `${data.name} · ${data.count.toLocaleString()} 点 · ${data.format}`;
+  return t('io.cloudDesc', { name: data.name, count: data.count.toLocaleString(), format: data.format });
 }

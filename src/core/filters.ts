@@ -5,6 +5,7 @@
 
 import type { CloudView } from './cloud';
 import { quantileOf, uid } from './cloud';
+import { t } from '../i18n';
 
 export type FilterMode = 'range' | 'set';
 
@@ -114,15 +115,16 @@ export function applyFilters(view: CloudView, rules: FilterRule[], logic: Filter
 }
 
 export function describeRule(rule: FilterRule, unit = ''): string {
-  const name = rule.kind === 'axis' ? `${AXIS_LABELS[rule.field] ?? rule.field} 坐标` : rule.field;
+  const name = rule.kind === 'axis' ? `${AXIS_LABELS[rule.field] ?? rule.field}${t('filter.axisCoord')}` : rule.field;
   const u = unit ? ` ${unit}` : '';
+  const act = rule.invert ? t('filter.exclude') : t('filter.keep');
   if (rule.mode === 'set') {
     const list = rule.set.length ? rule.set.join(', ') : '∅';
-    return `${rule.invert ? '排除' : '保留'} ${name} ∈ {${list}}`;
+    return t('filter.ruleSet', { act, name, set: list });
   }
   const lo = fmt(rule.min);
   const hi = fmt(rule.max);
-  return `${rule.invert ? '排除' : '保留'} ${name} ∈ [${lo}${u}, ${hi}${u}]`;
+  return t('filter.ruleRange', { act, name, lo: `${lo}${u}`, hi: `${hi}${u}` });
 }
 
 function fmt(v: number): string {

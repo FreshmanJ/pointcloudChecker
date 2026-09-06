@@ -3,6 +3,7 @@
 import type { PointCloudData } from '../core/cloud';
 import { createCloud } from '../core/cloud';
 import { guessUnitFor } from '../core/colormap';
+import { tMeta } from '../i18n';
 
 export interface ParseOutcome {
   data: PointCloudData;
@@ -268,8 +269,8 @@ export function finishCloud(
     units,
     warnings,
     meta: {
-      源文件: sourceName,
-      格式: format,
+      [tMeta('源文件')]: sourceName,
+      [tMeta('格式')]: format,
       ...(partial.meta ?? {}),
     },
   });

@@ -5,6 +5,7 @@
  */
 
 import type { ProgressFn } from './common';
+import { t } from '../i18n';
 import { yieldUI } from './common';
 
 import wasmUrl from 'laz-perf/lib/laz-perf.wasm?url';
@@ -36,7 +37,7 @@ function loadModule(): Promise<LazPerfModule> {
       const factory = (m as unknown as { default?: (opts: unknown) => Promise<LazPerfModule> }).default
         ?? (m as unknown as { createLazPerf: (opts: unknown) => Promise<LazPerfModule> }).createLazPerf
         ?? (m as unknown as { create: (opts: unknown) => Promise<LazPerfModule> }).create;
-      if (typeof factory !== 'function') throw new Error('laz-perf 模块导出异常');
+      if (typeof factory !== 'function') throw new Error(t('io.err.lazExport'));
       return factory({ locateFile: () => wasmUrl, wasmBinaryFile: wasmUrl });
     });
   }
@@ -49,7 +50,7 @@ export async function decompressLaz(buf: ArrayBuffer, onProgress?: ProgressFn): 
   const bytes = new Uint8Array(buf);
 
   const inPtr = mod._malloc(bytes.byteLength);
-  if (!inPtr) throw new Error('LAZ 解码器内存分配失败');
+  if (!inPtr) throw new Error(t('io.err.lazAlloc'));
   mod.HEAPU8.set(bytes, inPtr);
 
   const laszip = new mod.LASZip();
@@ -58,11 +59,11 @@ export async function decompressLaz(buf: ArrayBuffer, onProgress?: ProgressFn): 
     const count = laszip.getCount();
     const pointLength = laszip.getPointLength();
     if (!(count > 0) || !(pointLength > 0)) {
-      throw new Error('LAZ 头部信息无效（点数为 0 或点记录长度为 0）');
+      throw new Error(t('io.err.lazHeader'));
     }
 
     const outPtr = mod._malloc(pointLength);
-    if (!outPtr) throw new Error('LAZ 解码器内存分配失败');
+    if (!outPtr) throw new Error(t('io.err.lazAlloc'));
     const total = count * pointLength;
     const out = new Uint8Array(total);
 
@@ -73,7 +74,7 @@ export async function decompressLaz(buf: ArrayBuffer, onProgress?: ProgressFn): 
       out.set(mod.HEAPU8.subarray(outPtr, outPtr + pointLength), i * pointLength);
       if (i - last > 500_000) {
         last = i;
-        onProgress?.(0.2 + 0.38 * (i / count), `解压 LAZ… ${i.toLocaleString()}`);
+        onProgress?.(0.2 + 0.38 * (i / count), t('io.prog.lazDecompressing', { n: i.toLocaleString() }));
         await yieldUI();
       }
     }

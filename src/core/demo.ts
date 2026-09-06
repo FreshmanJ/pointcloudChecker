@@ -5,6 +5,7 @@
  */
 
 import { createCloud, type PointCloudData } from './cloud';
+import { t, tMeta } from '../i18n';
 
 export interface DemoOptions {
   /** Approximate number of points. */
@@ -174,9 +175,9 @@ export function createDemoCloud(opts: Partial<DemoOptions> = {}): PointCloudData
     scalarOrder: ['temperature', 'current_density', 'layer'],
     units,
     meta: {
-      说明: '合成示例：电机绕组 + 定子外壳的温度场',
-      点构成: `绕组 ${nCoil.toLocaleString()} / 机壳 ${nStator.toLocaleString()} / 端板与底座 ${nPlate.toLocaleString()}`,
-      热点: '轴向 63% 处存在局部过热点',
+      [tMeta('说明')]: t('demo.note'),
+      [tMeta('点构成')]: t('demo.composition', { c: nCoil.toLocaleString(), s: nStator.toLocaleString(), p: nPlate.toLocaleString() }),
+      [tMeta('热点')]: t('demo.hotspot'),
     },
     warnings: [],
   });

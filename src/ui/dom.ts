@@ -1,5 +1,7 @@
 /** Tiny DOM helpers and an inline icon set (no runtime icon dependency). */
 
+import { t } from '../i18n';
+
 export type Attrs = Record<string, string | number | boolean | undefined>;
 
 export function h<K extends keyof HTMLElementTagNameMap>(
@@ -31,7 +33,7 @@ export function clear(el: Element): void {
 
 export function qs<T extends Element = HTMLElement>(sel: string, root: ParentNode = document): T {
   const el = root.querySelector(sel);
-  if (!el) throw new Error(`未找到元素：${sel}`);
+  if (!el) throw new Error(t('error.selector', { sel }));
   return el as unknown as T;
 }
 
@@ -55,6 +57,7 @@ const ICON_PATHS: Record<string, string> = {
   chevron: 'm6 9 6 6 6-6',
   check: 'M20 6 9 17l-5-5',
   alert: 'm21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3zM12 9v4M12 17h.01',
+  globe: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M2 12h20 M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1-4-10z',
   checkCircle: 'M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4 12 14.01l-3-3',
   eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
   crosshair: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM22 12h-4M6 12H2M12 6V2M12 22v-4',

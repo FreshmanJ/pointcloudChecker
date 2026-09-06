@@ -3,13 +3,14 @@
  */
 
 import type { PointCloudData } from '../core/cloud';
+import { t } from '../i18n';
 import { finishCloud, yieldUI, type ProgressFn } from './common';
 import type { ParseOutcome } from './common';
 
 export async function parseOBJ(file: File, onProgress?: ProgressFn): Promise<ParseOutcome> {
-  onProgress?.(0.05, '读取文件…');
+  onProgress?.(0.05, t('io.prog.readFile'));
   const text = await file.text();
-  const warnings: string[] = ['仅导入 OBJ 的顶点（v），面与法线已忽略。'];
+  const warnings: string[] = [t('io.warn.objVertices')];
 
   const posList: number[] = [];
   const colList: number[] = [];
@@ -61,13 +62,13 @@ export async function parseOBJ(file: File, onProgress?: ProgressFn): Promise<Par
     i = e + 1;
     if (posList.length - last > 600_000) {
       last = posList.length;
-      onProgress?.(0.1 + 0.7 * (i / len), `解析顶点… ${(posList.length / 3).toLocaleString()}`);
+      onProgress?.(0.1 + 0.7 * (i / len), t('io.prog.objParse', { n: (posList.length / 3).toLocaleString() }));
       await yieldUI();
     }
   }
 
   const count = posList.length / 3;
-  if (count === 0) throw new Error('OBJ 中没有顶点');
+  if (count === 0) throw new Error(t('io.err.objNoVertex'));
 
   const positions = new Float32Array(posList);
   let colors: Uint8Array | null = null;
@@ -85,6 +86,6 @@ export async function parseOBJ(file: File, onProgress?: ProgressFn): Promise<Par
     file.name,
     'OBJ'
   );
-  onProgress?.(1, '完成');
+  onProgress?.(1, t('io.prog.done'));
   return { data, warnings };
 }

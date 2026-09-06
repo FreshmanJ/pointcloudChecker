@@ -6,24 +6,24 @@ import type { AttributeStats } from '../core/cloud';
 import { LUT_SIZE } from '../core/colormap';
 import type { Issue } from '../core/validate';
 import { ProfileChart, type ChartHover } from './chart';
+import { t } from '../i18n';
 import { fmtInt, fmtNum, h, icon } from './dom';
 import { emptyState, hint } from './controls';
 import { rgbBytesToHex } from '../core/colormap';
-
-const TAB_DEFS = [
-  { id: 'stats', label: '统计', icon: 'bars' as const },
-  { id: 'attrs', label: '属性', icon: 'table' as const },
-  { id: 'report', label: '合规报告', icon: 'checkCircle' as const },
-  { id: 'profile', label: '剖面曲线', icon: 'chart' as const },
-  { id: 'hover', label: '悬停点', icon: 'target' as const },
-];
 
 interface DockPage {
   el: HTMLElement;
   sync(): void;
 }
 
-export function createDataPanel(app: App, host: HTMLElement, tabsHost: HTMLElement): void {
+export function createDataPanel(app: App, host: HTMLElement, tabsHost: HTMLElement): () => void {
+  const TAB_DEFS = [
+    { id: 'stats', label: t('dock.tab.stats'), icon: 'bars' as const },
+    { id: 'attrs', label: t('dock.tab.attrs'), icon: 'table' as const },
+    { id: 'report', label: t('dock.tab.report'), icon: 'checkCircle' as const },
+    { id: 'profile', label: t('dock.tab.profile'), icon: 'chart' as const },
+    { id: 'hover', label: t('dock.tab.hover'), icon: 'target' as const },
+  ];
   const pages = new Map<string, DockPage>();
 
   const show = (id: string): void => {
@@ -71,8 +71,9 @@ export function createDataPanel(app: App, host: HTMLElement, tabsHost: HTMLEleme
     if (events.has('hover') || events.has('cloud')) pages.get('hover')?.sync();
   };
 
-  app.store.on(sync);
+  const off = app.store.on(sync);
   sync(new Set(['cloud', 'render', 'range', 'filters', 'profile', 'hover', 'meta', 'ui']));
+  return off;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -92,7 +93,7 @@ function buildStatsPage(app: App): DockPage {
     rangeBox.innerHTML = '';
 
     if (!view || view.count === 0) {
-      el.appendChild(emptyState('载入点云后，这里会显示完整的统计信息。', 'bars'));
+      el.appendChild(emptyState(t('stats.empty'), 'bars'));
       return;
     }
 
@@ -105,25 +106,25 @@ function buildStatsPage(app: App): DockPage {
     const v = st.validation;
 
     const cards: [string, string, string?][] = [
-      ['原始点数', fmtInt(st.source?.sourceCount ?? 0)],
-      ['当前渲染点数', fmtInt(view.count), st.source?.downsampled ? '已降采样' : undefined],
-      ['包围盒 X', fmtNum(sx)],
-      ['包围盒 Y', fmtNum(sy)],
-      ['包围盒 Z', fmtNum(sz)],
-      ['对角线长度', fmtNum(diag)],
-      ['空间点密度', `${fmtNum(view.count / vol)} /单位³`],
-      ['平均点间距', fmtNum(Math.cbrt(vol / Math.max(1, view.count)))],
-      ['无效坐标点', fmtInt(v?.invalidPoints ?? 0)],
-      ['重复率估计', `${(((v?.duplicateRatio) ?? 0) * 100).toFixed(1)} %`],
-      ['附加属性数', String(st.source?.scalarOrder.length ?? 0)],
-      ['内存占用估算', `${(( (st.source?.count ?? 0) * (12 + 3 + (st.source?.scalarOrder.length ?? 0) * 4) ) / 1048576).toFixed(1)} MB`],
+      [t('stats.srcCount'), fmtInt(st.source?.sourceCount ?? 0)],
+      [t('stats.viewCount'), fmtInt(view.count), st.source?.downsampled ? t('stats.downsampled') : undefined],
+      [t('stats.bboxX'), fmtNum(sx)],
+      [t('stats.bboxY'), fmtNum(sy)],
+      [t('stats.bboxZ'), fmtNum(sz)],
+      [t('stats.diag'), fmtNum(diag)],
+      [t('stats.density'), `${fmtNum(view.count / vol)}${t('stats.densityUnit')}`],
+      [t('stats.spacing'), fmtNum(Math.cbrt(vol / Math.max(1, view.count)))],
+      [t('stats.invalid'), fmtInt(v?.invalidPoints ?? 0)],
+      [t('stats.dupRatio'), `${(((v?.duplicateRatio) ?? 0) * 100).toFixed(1)} %`],
+      [t('stats.attrCount'), String(st.source?.scalarOrder.length ?? 0)],
+      [t('stats.mem'), `${(( (st.source?.count ?? 0) * (12 + 3 + (st.source?.scalarOrder.length ?? 0) * 4) ) / 1048576).toFixed(1)}${t('stats.mb')}`],
     ];
     for (const [k, val, sub] of cards) grid.appendChild(statCard(k, val, sub));
 
     rangeBox.appendChild(
       h('div', { class: 'table-wrap' }, [
         dataTable(
-          ['轴', '最小值', '最大值', '中心', '跨度'],
+          [t('stats.tableAxis'), t('stats.tableMin'), t('stats.tableMax'), t('stats.tableCenter'), t('stats.tableSpan')],
           (['X', 'Y', 'Z'] as const).map((axis, i) => [
             axis,
             fmtNum(b.min[i]),
@@ -175,7 +176,7 @@ function buildAttrsPage(app: App): DockPage {
     histBox.innerHTML = '';
 
     if (!view || !src || src.scalarOrder.length === 0) {
-      el.appendChild(emptyState('该点云没有附加属性（只有坐标）。', 'table'));
+      el.appendChild(emptyState(t('attrs.empty'), 'table'));
       return;
     }
 
@@ -199,7 +200,7 @@ function buildAttrsPage(app: App): DockPage {
       ]);
     }
     const table = dataTable(
-      ['属性', '单位', '最小', '最大', '均值', '中位', '标准差', 'P01', 'P99', '有效', '无效'],
+      [t('attrs.tableAttr'), t('attrs.tableUnit'), t('attrs.tableMin'), t('attrs.tableMax'), t('attrs.tableMean'), t('attrs.tableMedian'), t('attrs.tableStd'), t('attrs.tableP01'), t('attrs.tableP99'), t('attrs.tableValid'), t('attrs.tableInvalid')],
       rows
     );
     Array.from(table.querySelectorAll<HTMLElement>('tbody tr')).forEach((tr, i) => {
@@ -207,7 +208,7 @@ function buildAttrsPage(app: App): DockPage {
       if (!name) return;
       if (name === active) tr.classList.add('is-active');
       tr.style.cursor = 'pointer';
-      tr.title = `点击用「${name}」着色`;
+      tr.title = t('attrs.useAttr', { name });
       tr.addEventListener('click', () => {
         app.setRender({ colorMode: 'attribute', attribute: name });
         app.setMeasureField(name);
@@ -215,7 +216,7 @@ function buildAttrsPage(app: App): DockPage {
     });
     tableBox.appendChild(table);
 
-    histBox.appendChild(h('div', { class: 'label', text: '分布直方图' }));
+    histBox.appendChild(h('div', { class: 'label', text: t('attrs.hist') }));
     for (const name of src.scalarOrder) {
       const s = view.stats(name);
       if (!s) continue;
@@ -231,7 +232,7 @@ function buildAttrsPage(app: App): DockPage {
       );
       requestAnimationFrame(() => paintHist(cv, s, app.lut, lo, hi));
     }
-    histBox.appendChild(hint('灰色部分表示被值域裁剪（clip）排除的区间；点击表格中的属性行可切换着色。'));
+    histBox.appendChild(hint(t('attrs.histHint')));
   };
 
   return { el, sync };
@@ -289,11 +290,11 @@ function buildReportPage(app: App): DockPage {
     const v = app.state.validation;
     list.innerHTML = '';
     if (!v) {
-      el.appendChild(emptyState('载入点云后会自动执行合规校验。', 'checkCircle'));
+      el.appendChild(emptyState(t('report.empty'), 'checkCircle'));
       return;
     }
     if (v.issues.length === 0) {
-      el.appendChild(emptyState('没有检出任何问题。', 'checkCircle'));
+      el.appendChild(emptyState(t('report.clean'), 'checkCircle'));
       return;
     }
     for (const issue of v.issues) list.appendChild(reportItem(issue));
@@ -327,15 +328,15 @@ function buildProfilePage(app: App): DockPage {
   const box = h('div', { class: 'chart-canvas-box' }, [chart.el]);
 
   const statsGrid = h('div', { class: 'chart-stats' });
-  const readout = h('div', { class: 'mono dim', style: 'font-size:11px', text: '将鼠标移到曲线上查看数值' });
+  const readout = h('div', { class: 'mono dim', style: 'font-size:11px', text: t('profile.hoverReadout') });
   const side = h('div', { class: 'chart-side' }, [statsGrid, readout]);
 
   el.appendChild(h('div', { class: 'chart-wrap' }, [box, side]));
 
   chart.onHover = (hv: ChartHover | null) => {
     readout.textContent = hv
-      ? `距离 ${fmtNum(hv.distance)} → ${fmtNum(hv.value)} ${unitOf(app)}`
-      : '将鼠标移到曲线上查看数值';
+      ? t('profile.hoverFmt', { d: fmtNum(hv.distance), v: fmtNum(hv.value), u: unitOf(app) })
+      : t('profile.hoverReadout');
   };
 
   let lastSig = '';
@@ -346,28 +347,28 @@ function buildProfilePage(app: App): DockPage {
     const sig = res ? `${res.field}|${res.length}|${res.sampled}|${st.measure.field}` : 'none';
     if (sig !== lastSig) {
       lastSig = sig;
-      const label = res?.field ? (res.field === 'z' ? '高程 Z' : res.field) : '';
+      const label = res?.field ? (res.field === 'z' ? t('field.elevation') : res.field) : '';
       chart.setData(res, label, unitOf(app));
     }
 
     statsGrid.innerHTML = '';
     if (!res || res.sampled === 0) {
       statsGrid.style.gridColumn = '1 / -1';
-      statsGrid.appendChild(emptyState('在右侧「剖面」中选取起点与终点后，这里会绘制沿程变化曲线。', 'chart'));
+      statsGrid.appendChild(emptyState(t('profile.chartEmpty'), 'chart'));
       return;
     }
     statsGrid.style.gridColumn = '';
     const s = res.stats;
     const u = unitOf(app);
     const items: [string, string][] = [
-      ['线段长度', fmtNum(res.length)],
-      ['采样点数', fmtInt(res.sampled)],
-      ['起点值', `${fmtNum(s.start)}${u}`],
-      ['终点值', `${fmtNum(s.end)}${u}`],
-      ['最小 / 最大', `${fmtNum(s.min)} / ${fmtNum(s.max)}`],
-      ['平均 ± σ', `${fmtNum(s.mean)} ± ${fmtNum(s.std)}`],
-      ['峰值位置', fmtNum(s.maxAt)],
-      ['线性趋势', `${fmtNum(s.trend)}${u}/单位`],
+      [t('profile.length'), fmtNum(res.length)],
+      [t('profile.sampled'), fmtInt(res.sampled)],
+      [t('profile.start'), `${fmtNum(s.start)}${u}`],
+      [t('profile.end'), `${fmtNum(s.end)}${u}`],
+      [t('profile.minmax'), `${fmtNum(s.min)} / ${fmtNum(s.max)}`],
+      [t('profile.meanSigma'), `${fmtNum(s.mean)} ± ${fmtNum(s.std)}`],
+      [t('profile.peakAt'), fmtNum(s.maxAt)],
+      [t('profile.trend'), `${fmtNum(s.trend)}${u}/${t('profile.perUnit')}`],
     ];
     for (const [k, v] of items) {
       statsGrid.appendChild(
@@ -406,23 +407,23 @@ function buildHoverPage(app: App): DockPage {
     hoverBox.innerHTML = '';
     selBox.innerHTML = '';
 
-    hoverBox.appendChild(h('div', { class: 'label', text: '实时悬停点' }));
+    hoverBox.appendChild(h('div', { class: 'label', text: t('hover.live') }));
     const hv = app.hovered;
     if (!hv || !app.state.view) {
-      hoverBox.appendChild(emptyState('把鼠标移到点云上查看该点的数据。', 'target'));
+      hoverBox.appendChild(emptyState(t('hover.empty'), 'target'));
     } else {
       hoverBox.appendChild(entryTable(app, hv.viewIndex, hv.sourceIndex));
     }
 
-    selBox.appendChild(h('div', { class: 'label', text: '已选中点' }));
+    selBox.appendChild(h('div', { class: 'label', text: t('hover.selected') }));
     const sel = app.selected;
     if (!sel || !app.state.view) {
-      selBox.appendChild(emptyState('在浏览模式下点击某个点即可锁定它（Esc 取消）。', 'target'));
+      selBox.appendChild(emptyState(t('hover.selectedEmpty'), 'target'));
     } else {
       selBox.appendChild(entryTable(app, sel.viewIndex, sel.sourceIndex));
       const clear = h('button', { class: 'btn btn-sm', type: 'button' }, [
         icon('close', 12),
-        h('span', { text: '取消选中' }),
+        h('span', { text: t('hover.deselect') }),
       ]);
       clear.addEventListener('click', () => {
         app.selected = null;
@@ -441,7 +442,7 @@ function entryTable(app: App, viewIndex: number, sourceIndex: number): HTMLEleme
     e.value,
     e.swatch ? rgbBytesToHex(...hexToBytes(e.swatch)) : '',
   ]);
-  const table = dataTable(['项', '值'], rows.map((r) => [r[0], r[1]]));
+  const table = dataTable([t('hover.item'), t('hover.value')], rows.map((r) => [r[0], r[1]]));
   const body = table.querySelector('tbody');
   if (body) {
     Array.from(body.children).forEach((tr, i) => {
@@ -456,7 +457,7 @@ function entryTable(app: App, viewIndex: number, sourceIndex: number): HTMLEleme
     });
   }
   return h('div', {}, [
-    h('div', { class: 'field-hint', text: `原始索引 #${sourceIndex} · 视图索引 #${viewIndex}` }),
+    h('div', { class: 'field-hint', text: t('hover.index', { src: sourceIndex, view: viewIndex }) }),
     h('div', { class: 'table-wrap', style: 'margin-top:6px' }, [table]),
   ]);
 }

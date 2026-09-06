@@ -1,14 +1,17 @@
 /**
  * Capture feature screenshots for the README.
- *   node scripts/readme-shots.mjs [url] [outDir]
+ *   node scripts/readme-shots.mjs [url] [lang]
  *
  * - Forces the LIGHT theme.
+ * - Captures the UI in the requested language (`lang` = en | zh; default en)
+ *   by persisting `pci.lang` to localStorage and reloading once when it
+ *   differs from the effective (stored or default `zh`) language.
  * - For each feature, crops the screenshot to the panel element that actually
  *   changes (clip to its bounding box) instead of dumping the whole window.
  * - Adds two shots that previously were missing: the export tab (image export)
  *   and a segment-measurement overlay drawn on the viewport.
  *
- * Uses raw Chrome DevTools Protocol.
+ * Output lands in `docs/shots/<lang>/`. Uses raw Chrome DevTools Protocol.
  */
 
 import { spawn } from 'node:child_process';
@@ -21,7 +24,8 @@ const CHROME =
   'C:/Users/admin/.agent-browser/browsers/chrome-152.0.7977.75/chrome.exe';
 const TARGET = process.argv[2] || 'http://localhost:5173/';
 const PORT = Number(process.env.CDP_PORT || 9361);
-const outDir = process.argv[3] || path.join(process.cwd(), 'docs', 'shots');
+const LANG = process.argv[3] || 'en';
+const outDir = path.join(process.cwd(), 'docs', 'shots', LANG);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -62,7 +66,7 @@ async function waitDevTools(port, t = 30000) {
 async function main() {
   mkdirSync(outDir, { recursive: true });
   const profileDir = mkdtempSync(path.join(tmpdir(), 'pci-readme-'));
-  console.log(`Chrome: ${CHROME}\nTarget: ${TARGET}\nOut: ${outDir}`);
+  console.log(`Chrome: ${CHROME}\nTarget: ${TARGET}\nLang: ${LANG}\nOut: ${outDir}`);
   const chrome = spawn(CHROME, [
     '--headless=new', '--no-sandbox', '--disable-gpu', '--enable-unsafe-swiftshader',
     '--use-gl=angle', '--use-angle=swiftshader', '--hide-scrollbars', '--mute-audio',
@@ -111,13 +115,39 @@ async function main() {
     await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 1000, deviceScaleFactor: 1, mobile: false });
 
     await cdp.send('Page.navigate', { url: TARGET });
-    await sleep(2500);
-    await cdp.eval(`document.getElementById('welcomeDemo').click();`);
-    for (let i = 0; i < 80; i++) {
-      if ((await cdp.eval(`return window.__pci ? window.__pci.state.stage : 'none';`)) === 'ready') break;
-      await sleep(400);
+    await sleep(5000);
+    const bootDemo = async () => {
+      // Wait for the welcome screen to actually mount (the very first load on a
+      // fresh Vite server can spend seconds on dependency pre-bundling).
+      for (let i = 0; i < 50; i++) {
+        if (await cdp.eval(`return !!document.getElementById('welcomeDemo');`)) break;
+        await sleep(300);
+      }
+      await cdp.eval(`document.getElementById('welcomeDemo').click();`);
+      for (let i = 0; i < 80; i++) {
+        if ((await cdp.eval(`return window.__pci ? window.__pci.state.stage : 'none';`)) === 'ready') break;
+        await sleep(400);
+      }
+      await sleep(800);
+    };
+    await bootDemo();
+
+    // Force the requested language: persist `pci.lang`, reload once if it
+    // differs from the effective (stored or default `zh`) language.
+    const langReady = await cdp.eval(`(function(){
+      const k = 'pci.lang'; const want = ${JSON.stringify(LANG)};
+      let cur; try { cur = localStorage.getItem(k); } catch (e) { cur = null; }
+      const effective = (cur === 'en' || cur === 'zh') ? cur : 'zh';
+      if (effective === want) return true;
+      try { localStorage.setItem(k, want); } catch (e) {}
+      return false;
+    })()`);
+    if (!langReady) {
+      await cdp.send('Page.reload', {});
+      await sleep(2500);
+      await bootDemo();
     }
-    await sleep(800);
+    await sleep(400);
 
     // Force LIGHT theme (fresh profile should already be light after the
     // default change, but guard anyway).

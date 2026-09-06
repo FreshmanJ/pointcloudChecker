@@ -4,6 +4,7 @@
  */
 
 import type { CloudView } from './cloud';
+import { t } from '../i18n';
 
 export type DownsampleMethod = 'voxel' | 'random' | 'uniform' | 'none';
 
@@ -192,16 +193,16 @@ function clamp(v: number, lo: number, hi: number): number {
 export function describeDownsample(opts: DownsampleOptions): string {
   switch (opts.method) {
     case 'none':
-      return '不降采样';
+      return t('ds.none');
     case 'uniform':
-      return `等间隔抽稀 → ${opts.target.toLocaleString()} 点`;
+      return t('ds.uniform', { n: opts.target.toLocaleString() });
     case 'random':
-      return `随机采样 → ${opts.target.toLocaleString()} 点`;
+      return t('ds.random', { n: opts.target.toLocaleString() });
     case 'voxel':
     default:
       return opts.voxelSize > 0
-        ? `体素降采样（边长 ${formatLen(opts.voxelSize)}）`
-        : `体素降采样 → 目标 ${opts.target.toLocaleString()} 点`;
+        ? t('ds.voxelSize', { s: formatLen(opts.voxelSize) })
+        : t('ds.voxelTarget', { n: opts.target.toLocaleString() });
   }
 }
 

@@ -4,21 +4,21 @@ import type { App } from '../app';
 import type { CloudView } from '../core/cloud';
 import type { FilterRule } from '../core/filters';
 import { formatBytes } from '../io';
+import { t } from '../i18n';
 import { fmtInt, fmtNum, h, icon, toast } from './dom';
 import {
   buttonRow, check, dualRange, emptyState, hint, numberInput, prop, section, segmented,
   select, slider, toggle,
 } from './controls';
 
-const TAB_DEFS = [
-  { id: 'file', label: '文件', icon: 'file' as const },
-  { id: 'sample', label: '采样', icon: 'grid' as const },
-  { id: 'filter', label: '筛选', icon: 'filter' as const },
-  { id: 'profile', label: '剖面', icon: 'scissors' as const },
-  { id: 'export', label: '导出', icon: 'download' as const },
-];
-
-export function createFunctionsPanel(app: App, host: HTMLElement, tabsHost: HTMLElement): void {
+export function createFunctionsPanel(app: App, host: HTMLElement, tabsHost: HTMLElement): () => void {
+  const TAB_DEFS = [
+    { id: 'file', label: t('func.tab.file'), icon: 'file' as const },
+    { id: 'sample', label: t('func.tab.sample'), icon: 'grid' as const },
+    { id: 'filter', label: t('func.tab.filter'), icon: 'filter' as const },
+    { id: 'profile', label: t('func.tab.profile'), icon: 'scissors' as const },
+    { id: 'export', label: t('func.tab.export'), icon: 'download' as const },
+  ];
   const pages = new Map<string, HTMLElement>();
 
   const page = (id: string): HTMLElement => {
@@ -74,8 +74,9 @@ export function createFunctionsPanel(app: App, host: HTMLElement, tabsHost: HTML
     if (events.has('cloud') || events.has('profile')) exp.sync();
   };
 
-  app.store.on(sync);
+  const off = app.store.on(sync);
   sync(new Set(['cloud', 'filters', 'measure', 'profile', 'meta']));
+  return off;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -88,34 +89,34 @@ interface PageHandle {
 }
 
 function buildFilePage(app: App): PageHandle {
-  const secInfo = section('文件信息', { icon: 'file' });
+  const secInfo = section(t('file.info'), { icon: 'file' });
   const infoBody = h('div', { class: 'col', style: 'gap:4px' });
   secInfo.body.appendChild(infoBody);
 
-  const secMeta = section('元数据', { icon: 'info', collapsed: true });
+  const secMeta = section(t('file.meta'), { icon: 'info', collapsed: true });
   const metaBody = h('div', { class: 'col', style: 'gap:4px' });
   secMeta.body.appendChild(metaBody);
 
-  const secCheck = section('合规校验', { icon: 'checkCircle' });
+  const secCheck = section(t('file.check'), { icon: 'checkCircle' });
   const checkBody = h('div', { class: 'col', style: 'gap:6px' });
   secCheck.body.appendChild(checkBody);
 
-  const secAttr = section('属性', { icon: 'layers' });
+  const secAttr = section(t('file.attr'), { icon: 'layers' });
   const attrBody = h('div', { class: 'col', style: 'gap:4px' });
   secAttr.body.appendChild(attrBody);
 
-  const secOps = section('操作', { icon: 'refresh', collapsed: true });
+  const secOps = section(t('file.ops'), { icon: 'refresh', collapsed: true });
   const closeBtn = h('button', { class: 'btn btn-sm btn-danger btn-block', type: 'button' }, [
     icon('trash', 13),
-    h('span', { text: '关闭当前点云' }),
+    h('span', { text: t('file.close') }),
   ]);
   closeBtn.addEventListener('click', () => {
     app.closeCloud();
-    toast('info', '已关闭当前点云');
+    toast('info', t('toast.cloudClosed'));
   });
   const demoBtn = h('button', { class: 'btn btn-sm btn-block', type: 'button' }, [
     icon('cube', 13),
-    h('span', { text: '载入示例数据' }),
+    h('span', { text: t('file.loadDemo') }),
   ]);
   demoBtn.addEventListener('click', () => void app.loadDemo());
   secOps.body.appendChild(demoBtn);
@@ -129,18 +130,18 @@ function buildFilePage(app: App): PageHandle {
 
     infoBody.innerHTML = '';
     if (!src || !st.fileInfo) {
-      infoBody.appendChild(emptyState('尚未载入点云文件。', 'file'));
+      infoBody.appendChild(emptyState(t('file.noCloud'), 'file'));
     } else {
       const fi = st.fileInfo;
       const b = st.view?.bounds;
       const rows: [string, string][] = [
-        ['名称', fi.name],
-        ['格式', `${fi.format} · ${formatBytes(fi.size)}`],
-        ['解析耗时', `${(fi.parseMs / 1000).toFixed(2)} s`],
-        ['原始点数', fmtInt(src.sourceCount)],
-        ['当前点数', fmtInt(st.view?.count ?? 0)],
-        ['降采样', src.downsampled ? '是' : '否'],
-        ['包围盒', b ? `${fmtNum(b.max[0] - b.min[0])} × ${fmtNum(b.max[1] - b.min[1])} × ${fmtNum(b.max[2] - b.min[2])}` : '—'],
+        [t('file.name'), fi.name],
+        [t('file.format'), `${fi.format} · ${formatBytes(fi.size)}`],
+        [t('file.parseMs'), `${(fi.parseMs / 1000).toFixed(2)} s`],
+        [t('sample.srcCount'), fmtInt(src.sourceCount)],
+        [t('stats.viewCount'), fmtInt(st.view?.count ?? 0)],
+        [t('file.downsampled'), src.downsampled ? t('file.yes') : t('file.no')],
+        [t('file.bbox'), b ? `${fmtNum(b.max[0] - b.min[0])} × ${fmtNum(b.max[1] - b.min[1])} × ${fmtNum(b.max[2] - b.min[2])}` : '—'],
       ];
       for (const [k, v] of rows) infoBody.appendChild(infoRow(k, v));
     }
@@ -148,23 +149,23 @@ function buildFilePage(app: App): PageHandle {
     metaBody.innerHTML = '';
     const meta = src?.meta ?? {};
     const keys = Object.keys(meta);
-    if (keys.length === 0) metaBody.appendChild(emptyState('无元数据。'));
+    if (keys.length === 0) metaBody.appendChild(emptyState(t('file.noMeta')));
     for (const k of keys) metaBody.appendChild(infoRow(k, meta[k]));
 
     checkBody.innerHTML = '';
     const v = st.validation;
     if (!v) {
-      checkBody.appendChild(emptyState('尚未校验。'));
+      checkBody.appendChild(emptyState(t('file.notChecked')));
     } else {
       const errs = v.issues.filter((i) => i.level === 'err').length;
       const warns = v.issues.filter((i) => i.level === 'warn').length;
-      secCheck.setBadge(errs ? `${errs} 错误` : warns ? `${warns} 警告` : '通过');
-      checkBody.appendChild(infoRow('结论', errs ? '不合规' : v.needsDownsample ? '合规（已自动降采样）' : '合规'));
-      checkBody.appendChild(infoRow('无效坐标', fmtInt(v.invalidPoints)));
-      checkBody.appendChild(infoRow('重复率估计', `${(v.duplicateRatio * 100).toFixed(1)} %`));
+      secCheck.setBadge(errs ? t('check.errors', { n: errs }) : warns ? t('check.warns', { n: warns }) : t('check.pass'));
+      checkBody.appendChild(infoRow(t('file.verdict'), errs ? t('file.invalid') : v.needsDownsample ? t('file.compliantDs') : t('file.compliant')));
+      checkBody.appendChild(infoRow(t('file.invalidCoords'), fmtInt(v.invalidPoints)));
+      checkBody.appendChild(infoRow(t('file.dupRatio'), `${(v.duplicateRatio * 100).toFixed(1)} %`));
       const reportBtn = h('button', { class: 'btn btn-sm btn-block', type: 'button' }, [
         icon('list', 13),
-        h('span', { text: '查看完整校验报告' }),
+        h('span', { text: t('file.viewReport') }),
       ]);
       reportBtn.addEventListener('click', () => {
         app.state.ui.dockOpen = true;
@@ -176,11 +177,11 @@ function buildFilePage(app: App): PageHandle {
 
     attrBody.innerHTML = '';
     if (!src || src.scalarOrder.length === 0) {
-      attrBody.appendChild(emptyState('该点云没有附加属性。', 'layers'));
+      attrBody.appendChild(emptyState(t('file.noAttr'), 'layers'));
     } else {
       for (const name of src.scalarOrder) {
         const unit = src.units.get(name) ?? '';
-        const use = h('button', { class: 'btn btn-sm', type: 'button', title: '用该属性着色' }, [
+        const use = h('button', { class: 'btn btn-sm', type: 'button', title: t('file.useAttr') }, [
           icon('palette', 12),
         ]);
         use.addEventListener('click', () => {
@@ -216,21 +217,21 @@ function infoRow(k: string, v: string): HTMLElement {
 function buildSamplePage(app: App): PageHandle {
   const st = app.state;
 
-  const sec = section('降采样', { icon: 'grid' });
+  const sec = section(t('sample.title'), { icon: 'grid' });
 
   const method = segmented<'voxel' | 'random' | 'uniform' | 'none'>({
     options: [
-      { value: 'voxel', label: '体素', title: '体素网格抽稀，保留几何结构' },
-      { value: 'random', label: '随机', title: '可复现的随机采样' },
-      { value: 'uniform', label: '等间隔', title: '按存储顺序等间隔抽稀' },
-      { value: 'none', label: '不处理', title: '保留全部点' },
+      { value: 'voxel', label: t('sample.voxel'), title: t('sample.voxelTitle') },
+      { value: 'random', label: t('sample.random'), title: t('sample.randomTitle') },
+      { value: 'uniform', label: t('sample.uniform'), title: t('sample.uniformTitle') },
+      { value: 'none', label: t('sample.none'), title: t('sample.noneTitle') },
     ],
     value: st.downsample.method,
     onChange: (v) => app.applyDownsample({ method: v }),
   });
 
   const target = slider({
-    label: '目标点数',
+    label: t('sample.target'),
     min: 0,
     max: 100,
     step: 0.5,
@@ -246,23 +247,23 @@ function buildSamplePage(app: App): PageHandle {
   const targetLabel = target.el.querySelector('.val') as HTMLElement;
 
   const voxelSize = numberInput({
-    label: '体素边长',
+    label: t('sample.voxelSize'),
     value: st.downsample.voxelSize,
     step: 0.001,
     min: 0,
-    suffix: '0 = 自动',
+    suffix: t('sample.voxelAuto'),
     onInput: (v) => app.applyDownsample({ voxelSize: Math.max(0, v) }),
   });
 
   const seed = numberInput({
-    label: '随机种子',
+    label: t('sample.seed'),
     value: st.downsample.seed,
     step: 1,
     onInput: (v) => app.applyDownsample({ seed: Math.floor(v) || 1 }),
   });
 
   const auto = toggle({
-    label: '载入时自动降采样',
+    label: t('sample.auto'),
     value: st.autoDownsample,
     onChange: (v) => app.setAutoDownsample(v),
   });
@@ -277,17 +278,17 @@ function buildSamplePage(app: App): PageHandle {
 
   const apply = h('button', { class: 'btn btn-sm btn-primary btn-block', type: 'button' }, [
     icon('refresh', 13),
-    h('span', { text: '应用降采样' }),
+    h('span', { text: t('sample.apply') }),
   ]);
   apply.addEventListener('click', () => app.applyDownsample({}));
 
   const reset = h('button', { class: 'btn btn-sm btn-block', type: 'button' }, [
     icon('rotate', 13),
-    h('span', { text: '还原为原始点集' }),
+    h('span', { text: t('sample.reset') }),
   ]);
   reset.addEventListener('click', () => app.resetDownsample());
 
-  sec.body.appendChild(prop('方式', method.el));
+  sec.body.appendChild(prop(t('ctrl.method'), method.el));
   sec.body.appendChild(target.el);
   sec.body.appendChild(presets);
   sec.body.appendChild(voxelSize.el);
@@ -296,11 +297,11 @@ function buildSamplePage(app: App): PageHandle {
   sec.body.appendChild(apply);
   sec.body.appendChild(reset);
 
-  const secStat = section('抽稀统计', { icon: 'bars' });
+  const secStat = section(t('sample.stats'), { icon: 'bars' });
   const statBody = h('div', { class: 'col', style: 'gap:4px' });
   secStat.body.appendChild(statBody);
   secStat.body.appendChild(
-    hint('体素降采样会保留每个体素中距中心最近的点，因此属性与几何形状都能较好地保留。')
+    hint(t('sample.hint'))
   );
 
   const root = h('div', {}, [sec.root, secStat.root]);
@@ -309,8 +310,8 @@ function buildSamplePage(app: App): PageHandle {
     const s = app.state;
     method.set(s.downsample.method);
     const max = Math.max(20_000, s.source?.sourceCount ?? 1_500_000);
-    const t = tFromTarget(s.downsample.target, max);
-    target.set(clampNum(t, 0, 100));
+    const pct = tFromTarget(s.downsample.target, max);
+    target.set(clampNum(pct, 0, 100));
     targetLabel.textContent = fmtInt(s.downsample.target);
     voxelSize.set(s.downsample.voxelSize);
     seed.set(s.downsample.seed);
@@ -326,13 +327,13 @@ function buildSamplePage(app: App): PageHandle {
     statBody.innerHTML = '';
     const total = s.source?.sourceCount ?? 0;
     const shown = s.view?.count ?? 0;
-    statBody.appendChild(infoRow('原始点数', fmtInt(total)));
-    statBody.appendChild(infoRow('降采样后', fmtInt(s.baseView?.count ?? 0)));
-    statBody.appendChild(infoRow('筛选后（渲染）', fmtInt(shown)));
-    statBody.appendChild(infoRow('保留率', total ? `${((shown / total) * 100).toFixed(2)} %` : '—'));
+    statBody.appendChild(infoRow(t('sample.srcCount'), fmtInt(total)));
+    statBody.appendChild(infoRow(t('sample.afterDs'), fmtInt(s.baseView?.count ?? 0)));
+    statBody.appendChild(infoRow(t('sample.afterFilter'), fmtInt(shown)));
+    statBody.appendChild(infoRow(t('sample.keepRatio'), total ? `${((shown / total) * 100).toFixed(2)} %` : '—'));
     const diag = s.view?.diagonal ?? 0;
     const spacing = shown > 0 && diag > 0 ? Math.cbrt((diag ** 3) / shown) : NaN;
-    statBody.appendChild(infoRow('平均点间距估计', Number.isFinite(spacing) ? fmtNum(spacing) : '—'));
+    statBody.appendChild(infoRow(t('sample.spacing'), Number.isFinite(spacing) ? fmtNum(spacing) : '—'));
   };
 
   return { root, sync };
@@ -368,13 +369,13 @@ function clampNum(v: number, lo: number, hi: number): number {
 function buildFilterPage(app: App): PageHandle {
   const st = app.state;
 
-  const sec = section('筛选条件', { icon: 'filter', badge: '' });
+  const sec = section(t('filter.title'), { icon: 'filter', badge: '' });
 
   const logic = segmented<'and' | 'or'>({
-    label: '组合方式',
+    label: t('filter.logic'),
     options: [
-      { value: 'and', label: '全部满足 (AND)' },
-      { value: 'or', label: '任一满足 (OR)' },
+      { value: 'and', label: t('filter.and') },
+      { value: 'or', label: t('filter.or') },
     ],
     value: st.filters.logic,
     onChange: (v) => app.setFilterLogic(v),
@@ -383,19 +384,19 @@ function buildFilterPage(app: App): PageHandle {
   const rulesEl = h('div', { class: 'col', style: 'gap:8px' });
 
   const targetSel = select<string>({
-    label: '新条件基于',
+    label: t('filter.newBased'),
     options: app.targetOptions(),
     value: '',
   });
 
   const addBtn = h('button', { class: 'btn btn-sm btn-primary btn-block', type: 'button' }, [
     icon('plus', 13),
-    h('span', { text: '添加条件' }),
+    h('span', { text: t('filter.add') }),
   ]);
   addBtn.addEventListener('click', () => {
     const v = targetSel.get();
     if (!v) {
-      toast('warn', '没有可筛选的字段');
+      toast('warn', t('filter.noField'));
       return;
     }
     app.addFilterRule(v);
@@ -403,7 +404,7 @@ function buildFilterPage(app: App): PageHandle {
 
   const clearBtn = h('button', { class: 'btn btn-sm btn-block', type: 'button' }, [
     icon('trash', 13),
-    h('span', { text: '清空条件' }),
+    h('span', { text: t('filter.clear') }),
   ]);
   clearBtn.addEventListener('click', () => app.clearFilters());
 
@@ -413,23 +414,23 @@ function buildFilterPage(app: App): PageHandle {
   sec.body.appendChild(addBtn);
   sec.body.appendChild(clearBtn);
   sec.body.appendChild(
-    hint('筛选是无损的：被隐藏的点仍然保留在内存中，清空条件即可恢复。')
+    hint(t('filter.hint'))
   );
 
-  const secStat = section('筛选结果', { icon: 'bars' });
+  const secStat = section(t('filter.stats'), { icon: 'bars' });
   const statBody = h('div', { class: 'col', style: 'gap:4px' });
   secStat.body.appendChild(statBody);
 
   const root = h('div', {}, [sec.root, secStat.root]);
 
-  let renderedSig = ' ';
+  let renderedSig = '';
 
   const renderRules = (): void => {
     rulesEl.innerHTML = '';
     const rules = app.state.filters.rules;
     renderedSig = rules.map((r) => r.id).join('|');
     if (rules.length === 0) {
-      rulesEl.appendChild(emptyState('没有筛选条件，当前显示全部点。', 'filter'));
+      rulesEl.appendChild(emptyState(t('filter.noRules'), 'filter'));
       return;
     }
     for (const rule of rules) rulesEl.appendChild(ruleCard(app, rule));
@@ -438,7 +439,7 @@ function buildFilterPage(app: App): PageHandle {
   const sync = (): void => {
     const s = app.state;
     logic.set(s.filters.logic);
-    sec.setBadge(s.filters.rules.length ? `${s.filters.rules.length} 条` : '');
+    sec.setBadge(s.filters.rules.length ? t('filter.count', { n: s.filters.rules.length }) : '');
     targetSel.setOptions(app.targetOptions());
     const sig = s.filters.rules.map((r) => r.id).join('|');
     if (sig !== renderedSig) renderRules();
@@ -446,10 +447,10 @@ function buildFilterPage(app: App): PageHandle {
     statBody.innerHTML = '';
     const base = s.baseView?.count ?? 0;
     const shown = s.view?.count ?? 0;
-    statBody.appendChild(infoRow('降采样后', fmtInt(base)));
-    statBody.appendChild(infoRow('命中点数', fmtInt(shown)));
-    statBody.appendChild(infoRow('保留比例', base ? `${((shown / base) * 100).toFixed(2)} %` : '—'));
-    statBody.appendChild(infoRow('被隐藏', fmtInt(Math.max(0, base - shown))));
+    statBody.appendChild(infoRow(t('filter.afterDs'), fmtInt(base)));
+    statBody.appendChild(infoRow(t('filter.hit'), fmtInt(shown)));
+    statBody.appendChild(infoRow(t('filter.keepRatio'), base ? `${((shown / base) * 100).toFixed(2)} %` : '—'));
+    statBody.appendChild(infoRow(t('filter.hidden'), fmtInt(Math.max(0, base - shown))));
   };
 
   return { root, sync };
@@ -466,7 +467,7 @@ function ruleCard(app: App, rule: FilterRule): HTMLElement {
 
   const title = h('span', { class: 'filter-item-title truncate', text: ruleTitle(rule), title: ruleTitle(rule) });
 
-  const del = h('button', { class: 'icon-btn icon-btn-sm', type: 'button', title: '删除条件' }, [
+  const del = h('button', { class: 'icon-btn icon-btn-sm', type: 'button', title: t('filter.delRule') }, [
     icon('trash', 12),
   ]);
   del.addEventListener('click', () => app.removeFilterRule(rule.id));
@@ -475,8 +476,8 @@ function ruleCard(app: App, rule: FilterRule): HTMLElement {
 
   const mode = segmented<'range' | 'set'>({
     options: [
-      { value: 'range', label: '区间' },
-      { value: 'set', label: '枚举' },
+      { value: 'range', label: t('filter.range') },
+      { value: 'set', label: t('filter.set') },
     ],
     value: rule.mode,
     onChange: (v) => app.updateFilterRule(rule.id, { mode: v }),
@@ -485,7 +486,7 @@ function ruleCard(app: App, rule: FilterRule): HTMLElement {
   const [lo, hi, hist] = ruleRange(view, rule);
 
   const range = dualRange({
-    label: '区间',
+    label: t('filter.range'),
     min: lo,
     max: hi === lo ? lo + 1 : hi,
     lo: rule.min,
@@ -498,7 +499,7 @@ function ruleCard(app: App, rule: FilterRule): HTMLElement {
   const setInput = h('input', {
     class: 'input',
     value: rule.set.join(', '),
-    placeholder: '例如：2, 6, 9（整数值）',
+    placeholder: t('filter.setValuePlaceholder'),
   }) as HTMLInputElement;
   setInput.addEventListener('change', () => {
     const nums = setInput.value
@@ -507,10 +508,10 @@ function ruleCard(app: App, rule: FilterRule): HTMLElement {
       .filter((n) => Number.isFinite(n));
     app.updateFilterRule(rule.id, { set: nums });
   });
-  const setRow = prop('取值', setInput);
+  const setRow = prop(t('filter.values'), setInput);
 
   const invert = toggle({
-    label: '反转（排除命中范围）',
+    label: t('filter.invert'),
     value: rule.invert,
     onChange: (v) => app.updateFilterRule(rule.id, { invert: v }),
   });
@@ -559,7 +560,11 @@ function ruleCard(app: App, rule: FilterRule): HTMLElement {
 }
 
 function ruleTitle(rule: FilterRule): string {
-  return rule.kind === 'axis' ? `${rule.field.toUpperCase()} 坐标` : rule.field;
+  if (rule.kind === 'axis') {
+    const axisKey = rule.field === 'x' ? 'axis.x' : rule.field === 'y' ? 'axis.y' : 'axis.z';
+    return `${t(axisKey)} ${t('axis.coord')}`;
+  }
+  return rule.field;
 }
 
 function ruleRange(view: CloudView | null, rule: FilterRule): [number, number, Int32Array | undefined] {
@@ -580,18 +585,18 @@ function ruleRange(view: CloudView | null, rule: FilterRule): [number, number, I
 function buildProfilePage(app: App): PageHandle {
   const st = app.state;
 
-  const secPick = section('端点选取', { icon: 'crosshair' });
+  const secPick = section(t('profile.pick'), { icon: 'crosshair' });
 
   const modeBtn = h('button', { class: 'btn btn-sm btn-primary btn-block', type: 'button' }, [
     icon('crosshair', 13),
-    h('span', { text: '进入剖面测量模式' }),
+    h('span', { text: t('profile.enter') }),
   ]);
   modeBtn.addEventListener('click', () => app.setMode(app.state.ui.mode === 'measure' ? 'orbit' : 'measure'));
 
   const aEl = h('div', { class: 'mono', text: '—' });
   const bEl = h('div', { class: 'mono', text: '—' });
 
-  const swapBtn = h('button', { class: 'btn btn-sm', type: 'button', title: '交换起点与终点' }, [
+  const swapBtn = h('button', { class: 'btn btn-sm', type: 'button', title: t('profile.swap') }, [
     icon('rotate', 13),
   ]);
   swapBtn.addEventListener('click', () => {
@@ -605,40 +610,40 @@ function buildProfilePage(app: App): PageHandle {
     app.store.emit('measure');
     app.runProfile(true);
   });
-  const clearBtn = h('button', { class: 'btn btn-sm', type: 'button', title: '清除端点 (Esc)' }, [
+  const clearBtn = h('button', { class: 'btn btn-sm', type: 'button', title: t('profile.clear') }, [
     icon('close', 13),
   ]);
   clearBtn.addEventListener('click', () => app.clearMeasure());
 
   secPick.body.appendChild(modeBtn);
-  secPick.body.appendChild(prop('起点 A', aEl));
-  secPick.body.appendChild(prop('终点 B', bEl));
+  secPick.body.appendChild(prop(t('profile.startA'), aEl));
+  secPick.body.appendChild(prop(t('profile.endB'), bEl));
   secPick.body.appendChild(buttonRow([swapBtn, clearBtn]));
   secPick.body.appendChild(
-    hint('在测量模式下点击点云拾取真实点作为端点；端点以坐标保存，筛选或降采样后依然有效。')
+    hint(t('profile.pickHint'))
   );
 
-  const secOpt = section('采样参数', { icon: 'sliders' });
+  const secOpt = section(t('profile.opt'), { icon: 'sliders' });
 
   const field = select<string>({
-    label: '分析量',
+    label: t('profile.field'),
     options: app.profileFieldOptions(),
     value: st.measure.field,
     onChange: (v) => app.setMeasureField(v),
   });
 
   const radius = slider({
-    label: '管道半径',
+    label: t('profile.radius'),
     min: 0,
     max: 100,
     step: 0.5,
     value: 0,
-    format: (v) => (v <= 0 ? '自动' : fmtNum(radiusFromT(app, v))),
+    format: (v) => (v <= 0 ? t('profile.radiusAuto') : fmtNum(radiusFromT(app, v))),
     onInput: (v) => app.setMeasureOption({ radius: v <= 0 ? 0 : radiusFromT(app, v) }),
   });
 
   const bins = slider({
-    label: '分段数',
+    label: t('profile.bins'),
     min: 20,
     max: 400,
     step: 10,
@@ -648,12 +653,12 @@ function buildProfilePage(app: App): PageHandle {
   });
 
   const smooth = slider({
-    label: '滑动平均窗口',
+    label: t('profile.smooth'),
     min: 0,
     max: 41,
     step: 1,
     value: st.measure.smooth,
-    format: (v) => (v < 2 ? '关闭' : `${Math.round(v)} 段`),
+    format: (v) => (v < 2 ? t('profile.smoothOff') : `${Math.round(v)} ${t('profile.seg')}`),
     onInput: (v) => app.setMeasureOption({ smooth: Math.round(v) }),
   });
 
@@ -662,19 +667,19 @@ function buildProfilePage(app: App): PageHandle {
   secOpt.body.appendChild(bins.el);
   secOpt.body.appendChild(smooth.el);
 
-  const secStats = section('沿程统计', { icon: 'sigma' });
+  const secStats = section(t('profile.stats'), { icon: 'sigma' });
   const statsGrid = h('div', { class: 'chart-stats' });
   secStats.body.appendChild(statsGrid);
 
   const csvBtn = h('button', { class: 'btn btn-sm btn-block', type: 'button' }, [
     icon('download', 13),
-    h('span', { text: '导出剖面数据 (CSV)' }),
+    h('span', { text: t('profile.exportCsv') }),
   ]);
   csvBtn.addEventListener('click', () => app.exportProfileCSV());
   secStats.body.appendChild(h('div', { style: 'height:8px' }));
   secStats.body.appendChild(csvBtn);
 
-  const secHist = section('历史记录', { icon: 'list', collapsed: true });
+  const secHist = section(t('profile.history'), { icon: 'list', collapsed: true });
   const histEl = h('div', { class: 'measure-list' });
   secHist.body.appendChild(histEl);
 
@@ -687,10 +692,10 @@ function buildProfilePage(app: App): PageHandle {
     modeBtn.classList.toggle('btn-primary', !measuring);
     modeBtn.classList.toggle('btn-active', measuring);
     const label = modeBtn.querySelector('span');
-    if (label) label.textContent = measuring ? '退出测量模式' : '进入剖面测量模式';
+    if (label) label.textContent = measuring ? t('profile.exit') : t('profile.enter');
 
-    aEl.textContent = m.aLabel || '未选择';
-    bEl.textContent = m.bLabel || '未选择';
+    aEl.textContent = m.aLabel || t('profile.notSet');
+    bEl.textContent = m.bLabel || t('profile.notSet');
 
     field.setOptions(app.profileFieldOptions());
     field.set(m.field);
@@ -701,25 +706,25 @@ function buildProfilePage(app: App): PageHandle {
     statsGrid.innerHTML = '';
     const res = s.profile;
     if (!res || res.sampled === 0) {
-      statsGrid.appendChild(emptyState('选择起点与终点后显示沿程统计。', 'chart'));
+      statsGrid.appendChild(emptyState(t('profile.noData'), 'chart'));
       statsGrid.style.gridColumn = '1 / -1';
     } else {
       statsGrid.style.gridColumn = '';
       const st2 = res.stats;
       const unit = s.source?.units.get(res.field) ?? '';
       const items: [string, string][] = [
-        ['线段长度', fmtNum(res.length)],
-        ['采样点数', fmtInt(res.sampled)],
-        ['最小值', `${fmtNum(st2.min)}${unit}`],
-        ['最大值', `${fmtNum(st2.max)}${unit}`],
-        ['平均值', `${fmtNum(st2.mean)}${unit}`],
-        ['中位数', `${fmtNum(st2.median)}${unit}`],
-        ['标准差', fmtNum(st2.std)],
-        ['首尾差 Δ', fmtNum(st2.delta)],
-        ['最大梯度', fmtNum(st2.maxSlope)],
-        ['线性趋势', `${fmtNum(st2.trend)}${unit}/单位`],
-        ['峰值位置', fmtNum(st2.maxAt)],
-        ['谷值位置', fmtNum(st2.minAt)],
+        [t('profile.length'), fmtNum(res.length)],
+        [t('profile.sampled'), fmtInt(res.sampled)],
+        [t('profile.min'), `${fmtNum(st2.min)}${unit}`],
+        [t('profile.max'), `${fmtNum(st2.max)}${unit}`],
+        [t('profile.mean'), `${fmtNum(st2.mean)}${unit}`],
+        [t('profile.median'), `${fmtNum(st2.median)}${unit}`],
+        [t('profile.std'), fmtNum(st2.std)],
+        [t('profile.delta'), fmtNum(st2.delta)],
+        [t('profile.maxSlope'), fmtNum(st2.maxSlope)],
+        [t('profile.trend'), `${fmtNum(st2.trend)}${unit}/${t('profile.perUnit')}`],
+        [t('profile.peakAt'), fmtNum(st2.maxAt)],
+        [t('profile.valleyAt'), fmtNum(st2.minAt)],
       ];
       for (const [k, v] of items) {
         statsGrid.appendChild(
@@ -732,22 +737,22 @@ function buildProfilePage(app: App): PageHandle {
     }
 
     histEl.innerHTML = '';
-    if (m.history.length === 0) {
-      histEl.appendChild(emptyState('还没有测量记录。', 'list'));
+      if (m.history.length === 0) {
+      histEl.appendChild(emptyState(t('profile.noHistory'), 'list'));
     } else {
       for (const rec of m.history) {
         const dot = h('span', { class: 'measure-dot' });
         const item = h('div', {
           class: `measure-item${rec.id === m.activeId ? ' is-active' : ''}`,
-          title: `${rec.field || 'z'}${s.source?.units.get(rec.field) ?? ''} · 长度 ${fmtNum(rec.length)} · ${fmtInt(rec.sampled)} 点`,
+          title: `${rec.field || 'z'}${s.source?.units.get(rec.field) ?? ''} · ${t('profile.length')} ${fmtNum(rec.length)} · ${fmtInt(rec.sampled)} ${t('profile.pointsUnit')}`,
         }, [
           dot,
           h('div', { class: 'measure-item-body' }, [
             h('div', { class: 'measure-item-title' }, [
               h('span', { text: rec.field || 'z' }),
-              h('span', { class: 'field-hint', text: `${fmtNum(rec.length)} 长度` }),
+              h('span', { class: 'field-hint', text: `${fmtNum(rec.length)} ${t('profile.length')}` }),
             ]),
-            h('div', { class: 'measure-item-sub', text: `${fmtInt(rec.sampled)} 点 · ${new Date(rec.at).toLocaleTimeString()}` }),
+            h('div', { class: 'measure-item-sub', text: `${fmtInt(rec.sampled)} ${t('profile.pointsUnit')} · ${new Date(rec.at).toLocaleTimeString()}` }),
           ]),
         ]);
         item.addEventListener('click', () => app.loadMeasureRecord(rec.id));
@@ -774,21 +779,21 @@ function radiusTFromValue(app: App, v: number): number {
    ══════════════════════════════════════════════════════════════ */
 
 function buildExportPage(app: App): PageHandle {
-  const secImg = section('导出图片', { icon: 'camera' });
+  const secImg = section(t('export.image'), { icon: 'camera' });
 
   const shotBtn = h('button', { class: 'btn btn-sm btn-primary btn-block', type: 'button' }, [
     icon('camera', 13),
-    h('span', { text: '图像导出…' }),
+    h('span', { text: t('export.imageBtn') }),
   ]);
   shotBtn.addEventListener('click', () => app.openImageExport());
 
   secImg.body.appendChild(shotBtn);
-  secImg.body.appendChild(hint('可配置标题、色卡（位置 / 高度 / 标签 / 单位）、输出尺寸与分辨率，右侧实时预览，所见即所得。'));
+  secImg.body.appendChild(hint(t('export.imageSub')));
 
-  const secData = section('导出点云', { icon: 'download' });
+  const secData = section(t('export.data'), { icon: 'download' });
 
   const fmt = segmented<'csv' | 'ply' | 'pcd'>({
-    label: '格式',
+    label: t('export.format'),
     options: [
       { value: 'csv', label: 'CSV' },
       { value: 'ply', label: 'PLY' },
@@ -798,17 +803,17 @@ function buildExportPage(app: App): PageHandle {
   });
 
   const scope = segmented<'view' | 'source'>({
-    label: '范围',
+    label: t('export.scope'),
     options: [
-      { value: 'view', label: '当前视图' },
-      { value: 'source', label: '完整原始' },
+      { value: 'view', label: t('export.scopeView') },
+      { value: 'source', label: t('export.scopeSource') },
     ],
     value: 'view',
   });
 
   const exportBtn = h('button', { class: 'btn btn-sm btn-primary btn-block', type: 'button' }, [
     icon('download', 13),
-    h('span', { text: '导出点数据' }),
+    h('span', { text: t('export.exportPoints') }),
   ]);
   exportBtn.addEventListener('click', () => {
     app.exportPoints(fmt.get(), scope.get());
@@ -818,25 +823,25 @@ function buildExportPage(app: App): PageHandle {
   secData.body.appendChild(scope.el);
   secData.body.appendChild(exportBtn);
   secData.body.appendChild(
-    hint('「当前视图」导出经过降采样与筛选后的点；「完整原始」导出解析后的全部点（含所有属性列）。')
+    hint(t('export.pointsHint'))
   );
 
-  const secProfile = section('导出剖面', { icon: 'chart' });
+  const secProfile = section(t('export.profile'), { icon: 'chart' });
   const profileBtn = h('button', { class: 'btn btn-sm btn-block', type: 'button' }, [
     icon('download', 13),
-    h('span', { text: '导出剖面数据 (CSV)' }),
+    h('span', { text: t('export.profileCsv') }),
   ]);
   profileBtn.addEventListener('click', () => app.exportProfileCSV());
   secProfile.body.appendChild(profileBtn);
 
-  const secPreset = section('设置预设', { icon: 'save', collapsed: true });
+  const secPreset = section(t('export.preset'), { icon: 'save', collapsed: true });
   const presetBtn = h('button', { class: 'btn btn-sm btn-block', type: 'button' }, [
     icon('save', 13),
-    h('span', { text: '导出当前渲染/采样/筛选设置' }),
+    h('span', { text: t('export.presetBtn') }),
   ]);
   presetBtn.addEventListener('click', () => app.exportPreset());
   secPreset.body.appendChild(presetBtn);
-  secPreset.body.appendChild(hint('预设只包含显示与处理参数，不包含点数据本身。'));
+  secPreset.body.appendChild(hint(t('export.presetHint')));
 
   const root = h('div', {}, [secImg.root, secData.root, secProfile.root, secPreset.root]);
 

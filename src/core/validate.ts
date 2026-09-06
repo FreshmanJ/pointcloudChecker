@@ -4,6 +4,7 @@
 
 import type { Bounds, PointCloudData } from './cloud';
 import { createCloud } from './cloud';
+import { t } from '../i18n';
 
 export type IssueLevel = 'ok' | 'info' | 'warn' | 'err';
 
@@ -69,7 +70,7 @@ export function validateCloud(data: PointCloudData, limits = DEFAULT_LIMITS): Va
 
   /* --- hard failures --------------------------------------------------- */
   if (n === 0) {
-    issues.push({ level: 'err', title: '文件中没有点', desc: '解析结果为空，请检查文件是否损坏或格式是否正确。' });
+    issues.push({ level: 'err', title: t('val.empty'), desc: t('val.emptyDesc') });
     return {
       ok: false, issues, invalidPoints: invalid, duplicateRatio: 0,
       needsDownsample: false, suggestedTarget: 0, bounds, colorCoverage: 0,
@@ -79,8 +80,8 @@ export function validateCloud(data: PointCloudData, limits = DEFAULT_LIMITS): Va
   if (n > limits.hard) {
     issues.push({
       level: 'err',
-      title: `点数 ${n.toLocaleString()} 超出浏览器可处理上限`,
-      desc: `上限为 ${limits.hard.toLocaleString()}。请先在外部工具中切分或抽稀后再载入。`,
+      title: t('val.tooMany', { n: n.toLocaleString() }),
+      desc: t('val.tooManyDesc', { cap: limits.hard.toLocaleString() }),
     });
     return {
       ok: false, issues, invalidPoints: invalid, duplicateRatio: 0,
@@ -95,8 +96,8 @@ export function validateCloud(data: PointCloudData, limits = DEFAULT_LIMITS): Va
       badAttr++;
       issues.push({
         level: 'err',
-        title: `属性「${name}」长度不匹配`,
-        desc: `期望 ${n.toLocaleString()} 个值，实际 ${arr.length.toLocaleString()} 个。该属性已丢弃。`,
+        title: t('val.attrLen', { name }),
+        desc: t('val.attrLenDesc', { n: n.toLocaleString(), m: arr.length.toLocaleString() }),
       });
     }
   }
@@ -104,11 +105,11 @@ export function validateCloud(data: PointCloudData, limits = DEFAULT_LIMITS): Va
   /* --- invalid coordinates -------------------------------------------- */
   const invalidRatio = invalid / n;
   if (invalid > 0) {
-    issues.push({
-      level: invalidRatio > 0.05 ? 'warn' : 'info',
-      title: `检出 ${invalid.toLocaleString()} 个无效坐标 (NaN/Inf)`,
-      desc: `占比 ${(invalidRatio * 100).toFixed(2)}%，这些点已被自动剔除。`,
-    });
+      issues.push({
+        level: invalidRatio > 0.05 ? 'warn' : 'info',
+        title: t('val.invalidCoords', { n: invalid.toLocaleString() }),
+        desc: t('val.invalidCoordsDesc', { p: (invalidRatio * 100).toFixed(2) }),
+      });
   }
 
   /* --- degenerate extents --------------------------------------------- */
@@ -118,12 +119,12 @@ export function validateCloud(data: PointCloudData, limits = DEFAULT_LIMITS): Va
   if (sy < 1e-9) flat.push('Y');
   if (sz < 1e-9) flat.push('Z');
   if (flat.length === 3) {
-    issues.push({ level: 'warn', title: '所有点重合于同一位置', desc: '包围盒体积为零，无法计算有效的空间比例。' });
+    issues.push({ level: 'warn', title: t('val.coincident'), desc: t('val.coincidentDesc') });
   } else if (flat.length > 0) {
     issues.push({
       level: 'info',
-      title: `维度 ${flat.join(' / ')} 上无延展`,
-      desc: '点云在该方向上为平面/直线分布，属正常现象；但部分体素降采样会退化为二维。',
+      title: t('val.flat', { d: flat.join(' / ') }),
+      desc: t('val.flatDesc'),
     });
   }
 
@@ -132,8 +133,8 @@ export function validateCloud(data: PointCloudData, limits = DEFAULT_LIMITS): Va
   if (maxAbs > limits.coordMagnitude) {
     issues.push({
       level: 'warn',
-      title: '坐标量级异常偏大',
-      desc: `最大绝对值为 ${maxAbs.toExponential(2)}。若为毫米/厘米单位，建议在设置中调整坐标缩放以获得正确的相机与点尺寸表现。`,
+      title: t('val.magnitude'),
+      desc: t('val.magnitudeDesc', { v: maxAbs.toExponential(2) }),
     });
   }
 
@@ -142,8 +143,8 @@ export function validateCloud(data: PointCloudData, limits = DEFAULT_LIMITS): Va
   if (dupRatio > 0.3) {
     issues.push({
       level: 'warn',
-      title: `重复点比例偏高（约 ${(dupRatio * 100).toFixed(0)}%）`,
-      desc: '数据可能存在重复采集或栅格化痕迹，体素降采样可以显著减小体积。',
+      title: t('val.duplicate', { p: (dupRatio * 100).toFixed(0) }),
+      desc: t('val.duplicateDesc'),
     });
   }
 
@@ -152,8 +153,8 @@ export function validateCloud(data: PointCloudData, limits = DEFAULT_LIMITS): Va
   if (!data.colors && data.scalarOrder.length === 0) {
     issues.push({
       level: 'info',
-      title: '仅包含坐标数据',
-      desc: '没有颜色与附加属性，将以单色渲染。',
+      title: t('val.coordsOnly'),
+      desc: t('val.coordsOnlyDesc'),
     });
   }
 
@@ -163,11 +164,11 @@ export function validateCloud(data: PointCloudData, limits = DEFAULT_LIMITS): Va
   if (needsDownsample) {
     issues.push({
       level: 'warn',
-      title: `点数 ${n.toLocaleString()} 超过推荐阈值 ${limits.soft.toLocaleString()}`,
-      desc: `已自动执行体素降采样至约 ${suggestedTarget.toLocaleString()} 点，可在「功能 → 降采样」中调整或还原。`,
+      title: t('val.overThreshold', { n: n.toLocaleString(), cap: limits.soft.toLocaleString() }),
+      desc: t('val.overThresholdDesc', { cap: suggestedTarget.toLocaleString() }),
     });
   } else {
-    issues.push({ level: 'ok', title: `点数合规 (${n.toLocaleString()})`, desc: '在浏览器可流畅交互的范围内。' });
+    issues.push({ level: 'ok', title: t('val.ok', { n: n.toLocaleString() }), desc: t('val.okDesc') });
   }
 
   const ok = !issues.some((i) => i.level === 'err');

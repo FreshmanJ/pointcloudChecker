@@ -11,8 +11,12 @@ import './styles/components.css';
 import './styles/app.css';
 
 import { App } from './app';
+import { t, initLang } from './i18n';
 
 function boot(): void {
+  // Ensure the fatal-error message below can render in the user's saved language.
+  initLang();
+
   let app: App;
   try {
     app = new App();
@@ -21,7 +25,7 @@ function boot(): void {
     console.error('[pointcloud-inspector] boot failed', err);
     const veil = document.getElementById('loadingVeil');
     const label = document.getElementById('loadingLabel');
-    if (label) label.textContent = '初始化失败，请查看控制台输出。';
+    if (label) label.textContent = t('boot.failed');
     if (veil) veil.hidden = false;
     return;
   }

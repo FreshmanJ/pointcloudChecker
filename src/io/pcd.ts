@@ -3,6 +3,7 @@
  */
 
 import type { PointCloudData } from '../core/cloud';
+import { t, tMeta } from '../i18n';
 import { finishCloud, yieldUI, type ProgressFn } from './common';
 import type { ParseOutcome } from './common';
 
@@ -22,7 +23,7 @@ export async function parsePCD(file: File, onProgress?: ProgressFn): Promise<Par
   const headLen = Math.min(buf.byteLength, 1 << 20);
   const headText = new TextDecoder('utf-8').decode(new Uint8Array(buf, 0, headLen));
   const dataIdx = headText.search(/\nDATA\s/i);
-  if (dataIdx < 0) throw new Error('未找到 PCD 的 DATA 段');
+  if (dataIdx < 0) throw new Error(t('io.err.pcdNoData'));
   const lineEnd = headText.indexOf('\n', dataIdx + 1);
   const dataMode = headText
     .slice(dataIdx + 6, lineEnd < 0 ? headText.length : lineEnd)
@@ -55,10 +56,10 @@ export async function parsePCD(file: File, onProgress?: ProgressFn): Promise<Par
       default: break;
     }
   }
-  if (names.length === 0) throw new Error('PCD 缺少 FIELDS 声明');
+  if (names.length === 0) throw new Error(t('io.err.pcdNoFields'));
   if (!Number.isFinite(points) || points <= 0) points = width * Math.max(1, height);
   if (!Number.isFinite(points) || points <= 0) {
-    throw new Error('PCD 点数无效（请检查 WIDTH / HEIGHT / POINTS）');
+    throw new Error(t('io.err.pcdBadCount'));
   }
 
   const fields: PcdField[] = [];
@@ -69,14 +70,14 @@ export async function parsePCD(file: File, onProgress?: ProgressFn): Promise<Par
     const count = Number.isFinite(counts[i]) && counts[i] > 0 ? counts[i] : 1;
     fields.push({ name: names[i], size, type, count, offset: off });
     off += size * count;
-    if (count > 1) warnings.push(`字段「${names[i]}」为 ${count} 维数组，已跳过。`);
+    if (count > 1) warnings.push(t('io.warn.pcdSkipDim', { n: names[i], c: count }));
   }
   const stride = off;
 
   const xi = fields.findIndex((f) => f.name.toLowerCase() === 'x');
   const yi = fields.findIndex((f) => f.name.toLowerCase() === 'y');
   const zi = fields.findIndex((f) => f.name.toLowerCase() === 'z');
-  if (xi < 0 || yi < 0 || zi < 0) throw new Error('PCD 缺少 x / y / z 字段');
+  if (xi < 0 || yi < 0 || zi < 0) throw new Error(t('io.err.pcdNoXYZ'));
 
   const positions = new Float32Array(points * 3);
   const rgbIndex = fields.findIndex((f) => /^(rgb|rgba)$/i.test(f.name));
@@ -142,7 +143,7 @@ export async function parsePCD(file: File, onProgress?: ProgressFn): Promise<Par
       }
       pt++;
       if ((pt & 0x3ffff) === 0) {
-        onProgress?.(0.2 + 0.7 * (li / lines.length), `解析 ASCII… ${pt.toLocaleString()}`);
+        onProgress?.(0.2 + 0.7 * (li / lines.length), t('io.prog.pcdAscii', { n: pt.toLocaleString() }));
         await yieldUI();
       }
     }
@@ -150,7 +151,7 @@ export async function parsePCD(file: File, onProgress?: ProgressFn): Promise<Par
     /* ────────── binary / binary_compressed ────────── */
     let body: ArrayBuffer;
     if (dataMode === 'binary_compressed') {
-      onProgress?.(0.15, 'LZF 解压…');
+      onProgress?.(0.15, t('io.prog.pcdLzf'));
       await yieldUI();
       const dv0 = new DataView(buf, dataOffset);
       const compSize = dv0.getUint32(0, true);
@@ -158,12 +159,12 @@ export async function parsePCD(file: File, onProgress?: ProgressFn): Promise<Par
       const out = new Uint8Array(uncompSize);
       lzfDecompress(new Uint8Array(buf, dataOffset + 8, Math.min(compSize, buf.byteLength - dataOffset - 8)), compSize, out, uncompSize);
       body = out.buffer;
-      warnings.push('已从 binary_compressed（LZF）解压。');
+      warnings.push(t('io.warn.pcdLzf'));
     } else if (dataMode === 'binary') {
       body = buf;
       off = dataOffset;
     } else {
-      throw new Error(`不支持的 PCD DATA 类型：${dataMode}`);
+      throw new Error(t('io.err.pcdDataType', { m: dataMode }));
     }
 
     const dv = new DataView(body);
@@ -172,7 +173,7 @@ export async function parsePCD(file: File, onProgress?: ProgressFn): Promise<Par
     const usable = Math.min(points, Math.floor(available / stride));
     if (usable < points) {
       warnings.push(
-        `数据段长度不足：期望 ${(stride * points).toLocaleString()} 字节，实际 ${available.toLocaleString()} 字节，已截断到 ${usable.toLocaleString()} 点。`
+        t('io.err.pcdTrunc', { e: (stride * points).toLocaleString(), a: available.toLocaleString(), u: usable.toLocaleString() })
       );
     }
     for (let i = 0; i < usable; i++) {
@@ -183,7 +184,7 @@ export async function parsePCD(file: File, onProgress?: ProgressFn): Promise<Par
       }
       pt++;
       if ((i & 0xfffff) === 0 && i > 0) {
-        onProgress?.(0.2 + 0.7 * (i / usable), `解析二进制… ${i.toLocaleString()}`);
+        onProgress?.(0.2 + 0.7 * (i / usable), t('io.prog.pcdBinary', { n: i.toLocaleString() }));
         await yieldUI();
       }
     }
@@ -197,12 +198,12 @@ export async function parsePCD(file: File, onProgress?: ProgressFn): Promise<Par
       scalars: trimScalars(scalars, pt),
       scalarOrder,
       warnings,
-      meta: { 字段: fields.map((f) => f.name).join(' '), DATA: dataMode },
+      meta: { [tMeta('字段')]: fields.map((f) => f.name).join(' '), [tMeta('DATA')]: dataMode },
     },
     file.name,
     'PCD'
   );
-  onProgress?.(1, '完成');
+  onProgress?.(1, t('io.prog.done'));
   return { data, warnings };
 }
 

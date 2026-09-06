@@ -40,6 +40,9 @@ import { createFunctionsPanel } from './ui/panelFunctions';
 import { createSettingsPanel } from './ui/panelSettings';
 import { fmtInt, fmtNum, h, icon, toast } from './ui/dom';
 import type { Option } from './ui/controls';
+import {
+  t, setLang, getLang, onLangChange, initLang, applyPageI18n, type Lang,
+} from './i18n';
 
 const LS_COLORMAPS = 'pci.colormaps.v1';
 const LS_THEME = 'pci.theme';
@@ -78,7 +81,7 @@ interface DomRefs {
 
 function el<T extends HTMLElement = HTMLElement>(id: string): T {
   const node = document.getElementById(id);
-  if (!node) throw new Error(`缺少 DOM 节点 #${id}`);
+  if (!node) throw new Error(t('error.domNode', { id }));
   return node as T;
 }
 
@@ -133,7 +136,7 @@ export class App {
   private dom: DomRefs;
   private legend = new Legend();
   private gizmo = new AxisGizmo();
-  private hud = new InfoHud('视口', ['显示点数', '帧率', '包围盒', '相机距离']);
+  private hud!: InfoHud;
   private hoverCard: HoverCard;
   private hoverCardEl: HTMLElement;
 
@@ -150,6 +153,8 @@ export class App {
   private measureTimer = 0;
   private lastRecordKey = '';
   private statusItems = new Map<string, HTMLElement>();
+  /** Unsubscribe handles for the three panels, so we can tear them down on a language rebuild. */
+  private panelDisposers: Array<() => void> = [];
 
   /** Active colour scheme; mirrors <html data-theme>. */
   private theme: 'dark' | 'light' = 'dark';
@@ -174,20 +179,21 @@ export class App {
      ════════════════════════════════════════════════════════════ */
 
   start(): void {
+    initLang();
     this.initTheme();
     this.loadCustomColormaps();
+    this.mountWelcomeButtons(); // static buttons, bound once
+
+    // App reacts first so panels always read up-to-date derived values.
+    this.store.on((events) => this.sync(events));
+
+    // Visual mounts — re-run on language change via rebuildUI().
     this.mountTopbar();
     this.mountModeSwitch();
     this.mountViewportLayers();
     this.mountWelcome();
     this.buildStatusbar();
-
-    // App reacts first so panels always read up-to-date derived values.
-    this.store.on((events) => this.sync(events));
-
-    createSettingsPanel(this, this.dom.leftBody, this.dom.leftTabs);
-    createFunctionsPanel(this, this.dom.rightBody, this.dom.rightTabs);
-    createDataPanel(this, this.dom.dockBody, this.dom.dockTabs);
+    this.mountPanels();
 
     this.mountDropzone();
     this.mountFileInputs();
@@ -198,12 +204,62 @@ export class App {
 
     this.viewer.controls.addEventListener('change', () => this.updateGizmo());
     this.viewer.onFrame = (fps) => {
-      this.hud.set('帧率', `${fps.toFixed(0)} fps`);
+      this.hud.set('fps', `${fps.toFixed(0)} fps`);
     };
+
+    onLangChange(() => this.rebuildUI());
+    applyPageI18n();
 
     this.applyLayout();
     this.updateGizmo();
     this.pushAll();
+  }
+
+  /** Build the three panels, collecting their store unsubscribers. */
+  private mountPanels(): void {
+    this.panelDisposers.push(createSettingsPanel(this, this.dom.leftBody, this.dom.leftTabs));
+    this.panelDisposers.push(createFunctionsPanel(this, this.dom.rightBody, this.dom.rightTabs));
+    this.panelDisposers.push(createDataPanel(this, this.dom.dockBody, this.dom.dockTabs));
+  }
+
+  /**
+   * Tear down and rebuild every runtime-built UI element so all strings are
+   * re-translated for the newly selected language.
+   */
+  private rebuildUI(): void {
+    for (const d of this.panelDisposers) d();
+    this.panelDisposers = [];
+
+    this.dom.topbarActions.innerHTML = '';
+    this.dom.modeSwitch.innerHTML = '';
+    this.dom.vpTopLeft.innerHTML = '';
+    this.dom.vpTopRight.innerHTML = '';
+    this.dom.vpBottomLeft.innerHTML = '';
+    this.dom.welcomeFormats.innerHTML = '';
+    this.dom.statusbar.innerHTML = '';
+    this.dom.leftTabs.innerHTML = '';
+    this.dom.leftBody.innerHTML = '';
+    this.dom.rightTabs.innerHTML = '';
+    this.dom.rightBody.innerHTML = '';
+    this.dom.dockTabs.innerHTML = '';
+    this.dom.dockBody.innerHTML = '';
+
+    this.mountTopbar();
+    this.mountModeSwitch();
+    this.mountViewportLayers();
+    this.mountWelcome();
+    this.buildStatusbar();
+    this.mountPanels();
+    applyPageI18n();
+
+    this.applyLayout();
+    this.pushAll();
+  }
+
+  /** Bind the static welcome buttons once (their markup lives in index.html). */
+  private mountWelcomeButtons(): void {
+    document.getElementById('welcomePick')?.addEventListener('click', () => this.dom.fileInput.click());
+    document.getElementById('welcomeDemo')?.addEventListener('click', () => void this.loadDemo());
   }
 
   /* ────────── top bar ────────── */
@@ -212,28 +268,28 @@ export class App {
     const host = this.dom.topbarActions;
     const open = h('button', { class: 'btn btn-primary btn-sm', type: 'button' }, [
       icon('upload', 13),
-      h('span', { text: '打开文件' }),
+      h('span', { text: t('topbar.open') }),
     ]);
     open.addEventListener('click', () => this.dom.fileInput.click());
 
     const demo = h('button', { class: 'btn btn-sm', type: 'button' }, [
       icon('cube', 13),
-      h('span', { text: '示例数据' }),
+      h('span', { text: t('topbar.demo') }),
     ]);
     demo.addEventListener('click', () => void this.loadDemo());
 
-    const shot = h('button', { class: 'btn btn-sm', type: 'button', title: '配置标题、色卡与分辨率，导出当前视口为 PNG' }, [
+    const shot = h('button', { class: 'btn btn-sm', type: 'button', title: t('topbar.exportTitle') }, [
       icon('camera', 13),
-      h('span', { text: '图像导出' }),
+      h('span', { text: t('topbar.export') }),
     ]);
     shot.addEventListener('click', () => this.openImageExport());
 
-    const fit = h('button', { class: 'btn btn-sm', type: 'button', title: '缩放至全部 (F)' }, [
+    const fit = h('button', { class: 'btn btn-sm', type: 'button', title: t('topbar.frame') }, [
       icon('frame', 13),
     ]);
     fit.addEventListener('click', () => this.frameAll());
 
-    const full = h('button', { class: 'btn btn-sm', type: 'button', title: '全屏' }, [
+    const full = h('button', { class: 'btn btn-sm', type: 'button', title: t('topbar.fullscreen') }, [
       icon('grid', 13),
     ]);
     full.addEventListener('click', () => {
@@ -243,13 +299,89 @@ export class App {
 
     const themeBtn = h('button', {
       class: 'btn btn-sm', type: 'button', id: 'themeToggle',
-      title: '切换深色 / 浅色主题',
+      title: t('topbar.themeTitle'),
     }) as HTMLButtonElement;
     themeBtn.addEventListener('click', () => this.toggleTheme());
     this.themeBtn = themeBtn;
     this.updateThemeButton();
 
-    host.append(open, demo, h('div', { class: 'sep' }), shot, fit, full, themeBtn);
+    // ── Custom language selector (replaces the native <select>) ──
+    // A button + popup menu so we control the look fully and stay theme-aware
+    // instead of falling back to the OS-native select chrome.
+    const LANGS: { value: Lang; label: string }[] = [
+      { value: 'zh', label: '中文' },
+      { value: 'en', label: 'English' },
+    ];
+    const langRoot = h('div', { class: 'lang' });
+    const langLabel = h('span', { class: 'lang-label' });
+    const globe = icon('globe', 14);
+    const caret = icon('chevron', 12);
+    caret.setAttribute('class', 'lang-caret');
+    const langBtn = h('button', {
+      class: 'lang-btn', type: 'button',
+      title: t('app.lang'), 'aria-label': t('app.lang'),
+      'aria-haspopup': 'listbox', 'aria-expanded': 'false',
+    }, [globe, langLabel, caret]) as HTMLButtonElement;
+
+    const menu = h('div', { class: 'lang-menu', role: 'listbox' });
+    const optEls = new Map<Lang, HTMLButtonElement>();
+    for (const o of LANGS) {
+      const check = icon('check', 13);
+      check.setAttribute('class', 'lang-check');
+      const opt = h('button', {
+        class: 'lang-opt', type: 'button', role: 'option',
+        'data-lang': o.value, title: o.label,
+      }, [check, h('span', { text: o.label })]) as HTMLButtonElement;
+      opt.addEventListener('click', () => {
+        closeMenu();
+        if (getLang() !== o.value) setLang(o.value);
+      });
+      optEls.set(o.value, opt);
+      menu.appendChild(opt);
+    }
+    langRoot.append(langBtn, menu);
+
+    const syncLang = (): void => {
+      const cur = getLang();
+      langLabel.textContent = LANGS.find((l) => l.value === cur)?.label ?? cur;
+      for (const [v, el] of optEls) el.classList.toggle('is-on', v === cur);
+    };
+    syncLang();
+
+    let langOpen = false;
+    const onDocClick = (e: MouseEvent): void => {
+      if (!langRoot.contains(e.target as Node)) closeMenu();
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') { closeMenu(); langBtn.focus(); return; }
+      if (!langOpen) return;
+      const opts = LANGS.map((l) => optEls.get(l.value)!);
+      let idx = opts.findIndex((o) => o === document.activeElement);
+      if (e.key === 'ArrowDown') { e.preventDefault(); idx = (idx + 1) % opts.length; opts[idx].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); idx = (idx - 1 + opts.length) % opts.length; opts[idx].focus(); }
+    };
+    const openMenu = (): void => {
+      if (langOpen) return;
+      langOpen = true;
+      langRoot.classList.add('is-open');
+      langBtn.setAttribute('aria-expanded', 'true');
+      const first = LANGS[0] ? optEls.get(LANGS[0].value) : undefined;
+      (optEls.get(getLang()) ?? first)?.focus();
+      document.addEventListener('click', onDocClick, true);
+      document.addEventListener('keydown', onKey, true);
+    };
+    const closeMenu = (): void => {
+      if (!langOpen) return;
+      langOpen = false;
+      langRoot.classList.remove('is-open');
+      langBtn.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('click', onDocClick, true);
+      document.removeEventListener('keydown', onKey, true);
+    };
+    const toggleMenu = (): void => (langOpen ? closeMenu() : openMenu());
+    langBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(); });
+
+    host.append(open, demo, h('div', { class: 'sep' }), shot, fit, full, themeBtn, langRoot);
   }
 
   /* ────────── theme ────────── */
@@ -287,18 +419,18 @@ export class App {
     const dark = this.theme === 'dark';
     this.themeBtn.innerHTML = '';
     this.themeBtn.appendChild(icon(dark ? 'sun' : 'moon', 14));
-    this.themeBtn.title = dark ? '切换到浅色主题' : '切换到深色主题';
+    this.themeBtn.title = dark ? t('topbar.themeToLight') : t('topbar.themeToDark');
     this.themeBtn.setAttribute('aria-label', this.themeBtn.title);
   }
 
   private mountModeSwitch(): void {
     const host = this.dom.modeSwitch;
     const modes: { id: InteractMode; label: string; icon: 'hand' | 'crosshair' }[] = [
-      { id: 'orbit', label: '浏览', icon: 'hand' },
-      { id: 'measure', label: '剖面测量', icon: 'crosshair' },
+      { id: 'orbit', label: t('mode.orbit'), icon: 'hand' },
+      { id: 'measure', label: t('mode.measure'), icon: 'crosshair' },
     ];
     for (const m of modes) {
-      const b = h('button', { class: 'mode-btn', type: 'button', title: `切换交互模式（M）` }, [
+      const b = h('button', { class: 'mode-btn', type: 'button', title: t('mode.title') }, [
         icon(m.icon, 14),
         h('span', { text: m.label }),
       ]);
@@ -309,6 +441,12 @@ export class App {
   }
 
   private mountViewportLayers(): void {
+    this.hud = new InfoHud(t('hud.title'), [
+      { key: 'points', label: t('hud.points') },
+      { key: 'fps', label: t('hud.fps') },
+      { key: 'bbox', label: t('hud.bbox') },
+      { key: 'camdist', label: t('hud.camdist') },
+    ]);
     this.dom.vpTopLeft.appendChild(this.hud.el);
     this.dom.vpTopRight.appendChild(this.gizmo.el);
     this.dom.vpBottomLeft.appendChild(this.legend.el);
@@ -317,8 +455,8 @@ export class App {
     hint.innerHTML = '';
     hint.appendChild(
       h('div', {}, [
-        h('b', { text: '剖面测量模式' }),
-        h('div', { class: 'dim', text: '点击点云选择起点，再点击一次选择终点；Esc 清除。' }),
+        h('b', { text: t('hint.measureTitle') }),
+        h('div', { class: 'dim', text: t('hint.measureBody') }),
       ])
     );
   }
@@ -327,11 +465,9 @@ export class App {
     const host = this.dom.welcomeFormats;
     for (const f of SUPPORTED_FORMATS) {
       host.appendChild(
-        h('span', { class: 'chip', title: f.note, text: f.label })
+        h('span', { class: 'chip', title: t(`fmt.${f.ext}`), text: f.label })
       );
     }
-    document.getElementById('welcomePick')?.addEventListener('click', () => this.dom.fileInput.click());
-    document.getElementById('welcomeDemo')?.addEventListener('click', () => void this.loadDemo());
   }
 
   /* ────────── file inputs ────────── */
@@ -344,7 +480,7 @@ export class App {
       fi.value = '';
       if (files.length) void this.loadFile(files[0]);
       if (files.length > 1) {
-        toast('info', '一次只载入一个文件', `已载入 ${files[0].name}，其余 ${files.length - 1} 个已忽略。`);
+        toast('info', t('toast.singleFile'), t('toast.singleFileDesc', { name: files[0].name, n: files.length - 1 }));
       }
     });
 
@@ -446,7 +582,7 @@ export class App {
     } else {
       this.hoverCard.show(
         this.pointer.x, this.pointer.y,
-        `点 #${p.sourceIndex.toLocaleString()}`,
+        t('hover.point', { n: p.sourceIndex.toLocaleString() }),
         this.hoverEntries(p.viewIndex)
       );
       const r = this.state.render;
@@ -656,7 +792,7 @@ export class App {
       } catch (err) {
         this.setLoading(false);
         const msg = err instanceof Error ? err.message : String(err);
-        toast('err', '无法读取列信息', msg);
+        toast('err', t('toast.colRead'), msg);
         return;
       }
       if (!selection) {
@@ -667,7 +803,7 @@ export class App {
     }
 
     st.stage = 'loading';
-    this.setLoading(true, `解析 ${file.name}…`, 0.02);
+    this.setLoading(true, t('loading.parse', { name: file.name }), 0.02);
     await yieldUI();
     const t0 = performance.now();
     try {
@@ -678,13 +814,13 @@ export class App {
         },
         selection
       );
-      this.setLoading(true, '校验与清理数据…', 0.9);
+      this.setLoading(true, t('loading.validate'), 0.9);
       await yieldUI();
 
       const cleaned = sanitizeCloud(outcome.data);
       const data = cleaned.data;
       const warnings = [...outcome.warnings, ...data.warnings];
-      if (cleaned.removed > 0) warnings.push(`已剔除 ${cleaned.removed.toLocaleString()} 个无效坐标点`);
+      if (cleaned.removed > 0) warnings.push(t('toast.removedInvalid', { n: cleaned.removed.toLocaleString() }));
 
       const validation = validateCloud(data);
       if (data.count === 0) {
@@ -692,7 +828,7 @@ export class App {
         st.stage = st.source ? 'ready' : 'empty';
         st.validation = validation;
         this.store.emit('meta');
-        toast('err', '文件中没有可用的点', '请检查文件是否损坏，或列分隔符是否正确。');
+        toast('err', t('toast.noUsablePoints'), t('toast.noUsablePointsDesc'));
         return;
       }
 
@@ -725,18 +861,19 @@ export class App {
       const errs = validation.issues.filter((i) => i.level === 'err');
       if (errs.length) toast('err', errs[0].title, errs[0].desc);
       else if (validation.needsDownsample) {
-        toast('warn', '点数超过推荐阈值，已自动降采样',
-          `原始 ${fmtInt(data.sourceCount)} 点 → 显示 ${fmtInt(st.view?.count ?? 0)} 点，可在「功能 → 采样」中调整。`);
+        toast('warn', t('toast.autoDs'),
+          t('toast.autoDsDesc', { src: fmtInt(data.sourceCount), view: fmtInt(st.view?.count ?? 0) }));
       } else {
-        toast('ok', `已载入 ${file.name}`, `${fmtInt(data.count)} 点 · ${formatBytes(file.size)} · ${((performance.now() - t0) / 1000).toFixed(2)}s`);
+        toast('ok', t('toast.loaded', { name: file.name }),
+          t('toast.loadedDesc', { count: fmtInt(data.count), size: formatBytes(file.size), sec: ((performance.now() - t0) / 1000).toFixed(2) }));
       }
-      for (const w of warnings.slice(0, 3)) toast('info', '解析提示', w);
+      for (const w of warnings.slice(0, 3)) toast('info', t('toast.parseHint'), w);
     } catch (err) {
       this.setLoading(false);
       st.stage = st.source ? 'ready' : 'empty';
       this.store.emit('meta');
       const msg = err instanceof Error ? err.message : String(err);
-      toast('err', '解析失败', msg);
+      toast('err', t('toast.parseFail'), msg);
     } finally {
       this.setLoading(false);
     }
@@ -745,11 +882,11 @@ export class App {
   async loadDemo(): Promise<void> {
     const st = this.state;
     st.stage = 'loading';
-    this.setLoading(true, '生成示例点云…', 0.15);
+    this.setLoading(true, t('loading.demo'), 0.15);
     await yieldUI();
     const t0 = performance.now();
     const data = createDemoCloud();
-    this.setLoading(true, '校验数据…', 0.8);
+    this.setLoading(true, t('loading.check'), 0.8);
     await yieldUI();
 
     st.source = data;
@@ -768,7 +905,7 @@ export class App {
     this.frameAll();
     this.store.emit('cloud', 'render', 'filters', 'meta');
     this.setLoading(false);
-    toast('ok', '已载入示例数据', '合成电机绕组温度场 · 轴向 63% 处有局部过热点。试试「剖面测量」。');
+    toast('ok', t('toast.demoLoaded'), t('toast.demoLoadedDesc'));
   }
 
   closeCloud(): void {
@@ -868,7 +1005,7 @@ export class App {
     st.downsample = { ...st.downsample, ...patch };
     this.rebuild();
     this.store.emit('cloud', 'render', 'meta');
-    toast('info', '降采样已应用', `当前显示 ${fmtInt(st.view?.count ?? 0)} 点。`);
+    toast('info', t('toast.dsApplied'), t('toast.dsAppliedDesc', { n: fmtInt(st.view?.count ?? 0) }));
   }
 
   resetDownsample(): void {
@@ -876,7 +1013,7 @@ export class App {
     st.downsample = { ...st.downsample, method: 'none' };
     this.rebuild();
     this.store.emit('cloud', 'render', 'meta');
-    toast('ok', '已还原为原始点集', `显示 ${fmtInt(st.view?.count ?? 0)} 点。`);
+    toast('ok', t('toast.dsReset'), t('toast.dsResetDesc', { n: fmtInt(st.view?.count ?? 0) }));
   }
 
   setAutoDownsample(on: boolean): void {
@@ -987,7 +1124,7 @@ export class App {
     this.state.render.colormapId = id;
     this.persistCustomColormaps();
     this.store.emit('render');
-    toast('ok', `已保存色卡「${name}」`, '自定义色卡保存在浏览器本地。');
+    toast('ok', t('toast.lutSaved', { name }), t('toast.lutSavedDesc'));
   }
 
   exportColormaps(list: ColormapDef[]): void {
@@ -1003,21 +1140,21 @@ export class App {
       const text = await file.text();
       const parsed = JSON.parse(text) as { colormaps?: ColormapDef[] };
       const list = parsed.colormaps ?? [];
-      if (!Array.isArray(list) || list.length === 0) throw new Error('文件中没有色卡定义');
+      if (!Array.isArray(list) || list.length === 0) throw new Error(t('error.noLutDef'));
       for (const cm of list) {
         if (!cm?.stops?.length) continue;
         registerColormap({
           id: cm.id || `custom_${Date.now().toString(36)}`,
-          name: cm.name || cm.id || '导入色卡',
+          name: cm.name || cm.id || t('lut.importedName'),
           stops: cm.stops,
           builtin: false,
         });
       }
       this.persistCustomColormaps();
       this.store.emit('cloud', 'render');
-      toast('ok', `已导入 ${list.length} 个色卡`);
+      toast('ok', t('toast.lutImported', { n: list.length }));
     } catch (err) {
-      toast('err', '色卡导入失败', err instanceof Error ? err.message : String(err));
+      toast('err', t('toast.lutImportFail'), err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -1045,7 +1182,7 @@ export class App {
   /** Options for the "colour by" dropdown. */
   fieldOptions(): Option<string>[] {
     const src = this.state.source;
-    if (!src || src.scalarOrder.length === 0) return [{ value: '', label: '（无属性）' }];
+    if (!src || src.scalarOrder.length === 0) return [{ value: '', label: t('field.none') }];
     return src.scalarOrder.map((n) => {
       const u = src.units.get(n);
       return { value: n, label: u ? `${n} (${u})` : n };
@@ -1055,11 +1192,11 @@ export class App {
   /** Options for filter / profile targets, axes included. */
   targetOptions(): Option<string>[] {
     const axes: Option<string>[] = [
-      { value: 'axis:x', label: 'X 坐标', group: '坐标' },
-      { value: 'axis:y', label: 'Y 坐标', group: '坐标' },
-      { value: 'axis:z', label: 'Z 坐标', group: '坐标' },
+      { value: 'axis:x', label: t('axis.x'), group: t('group.coords') },
+      { value: 'axis:y', label: t('axis.y'), group: t('group.coords') },
+      { value: 'axis:z', label: t('axis.z'), group: t('group.coords') },
     ];
-    const attrs = this.fieldOptions().map((o) => ({ ...o, group: '属性' }));
+    const attrs = this.fieldOptions().map((o) => ({ ...o, group: t('group.attrs') }));
     if (attrs.length === 1 && attrs[0].value === '') return axes;
     return [...axes, ...attrs];
   }
@@ -1100,7 +1237,7 @@ export class App {
       m.aLabel = `(${fmtNum(pos[0])}, ${fmtNum(pos[1])}, ${fmtNum(pos[2])})`;
       this.state.profile = null;
       this.store.emit('measure', 'profile');
-      toast('info', '起点已设置', '再点击一个点作为终点。', 2000);
+      toast('info', t('measure.startSet'), t('measure.startHint'), 2000);
     } else {
       m.b = [pos[0], pos[1], pos[2]];
       m.bLabel = `(${fmtNum(pos[0])}, ${fmtNum(pos[1])}, ${fmtNum(pos[2])})`;
@@ -1182,7 +1319,7 @@ export class App {
     }
     this.store.emit('profile', 'measure');
     if (res && res.sampled === 0) {
-      toast('warn', '剖面上没有采样到点', '试着增大管道半径，或把端点选在点云更密集的位置。');
+      toast('warn', t('toast.noProfileSamples'), t('toast.noProfileSamplesDesc'));
     }
   }
 
@@ -1193,7 +1330,7 @@ export class App {
   /** Open the configurable image-export dialog (title / colour bar / size). */
   openImageExport(): void {
     if (!this.state.view || this.state.view.count === 0) {
-      toast('warn', '还没有可导出的点云');
+      toast('warn', t('toast.noCloudExport'));
       return;
     }
     const r = this.state.render;
@@ -1216,31 +1353,31 @@ export class App {
     if (!st.source) return;
     const view = scope === 'source' ? CloudView.full(st.source) : st.view;
     if (!view || view.count === 0) {
-      toast('warn', '没有可导出的点');
+      toast('warn', t('toast.noPointsExport'));
       return;
     }
     const fields = st.source.scalarOrder;
     const name = `${this.baseName()}_${scope === 'source' ? 'all' : 'view'}_${fmtInt(view.count).replace(/,/g, '')}`;
     if (view.count > 4_000_000) {
-      toast('warn', '点数过多', '超过 400 万点的文本导出会非常慢，建议先降采样。');
+      toast('warn', t('toast.tooManyPoints'), t('toast.tooManyPointsDesc'));
     }
     const text = format === 'csv' ? viewToCSV(view, fields)
       : format === 'ply' ? viewToPLY(view, fields)
       : viewToPCD(view, fields);
     downloadText(text, `${name}.${format}`, format === 'csv' ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8');
-    toast('ok', '点云已导出', `${name}.${format}`);
+    toast('ok', t('toast.cloudExported'), `${name}.${format}`);
   }
 
   exportProfileCSV(): void {
     const res = this.state.profile;
     if (!res) {
-      toast('warn', '还没有剖面结果', '先在「剖面」中选取起点与终点。');
+      toast('warn', t('toast.noProfile'), t('toast.noProfileDesc'));
       return;
     }
     const src = this.state.source;
     const unit = res.field && src?.units.get(res.field) ? src.units.get(res.field)! : '';
     downloadText(profileCSV(res, unit), `${this.baseName()}_profile_${res.field || 'z'}.csv`, 'text/csv;charset=utf-8');
-    toast('ok', '剖面数据已导出');
+    toast('ok', t('toast.profileExported'));
   }
 
   exportPreset(): void {
@@ -1324,8 +1461,8 @@ export class App {
       this.legend.update({
         lut: this.lut, lo: 0, hi: 1, log: false, label: '', unit: '', stats: null, visible: false,
       });
-      this.hud.set('显示点数', '0');
-      this.hud.set('包围盒', '—');
+      this.hud.set('points', '0');
+      this.hud.set('bbox', '—');
       return;
     }
 
@@ -1342,7 +1479,7 @@ export class App {
       this.effRange = effectiveRange(r.range, stats);
     } else if (r.colorMode === 'elevation') {
       stats = this.elevationStats();
-      label = '高程 Z';
+      label = t('field.elevation');
       this.effRange = effectiveRange(r.range, stats);
     } else {
       this.effRange = { lo: 0, hi: 1, dataMin: 0, dataMax: 1, clipped: false };
@@ -1369,7 +1506,7 @@ export class App {
 
     const visible = r.colorMode === 'attribute' || r.colorMode === 'elevation';
     this.legendInfo = {
-      label: label || (r.colorMode === 'rgb' ? '原色 RGB' : '统一颜色'),
+      label: label || (r.colorMode === 'rgb' ? t('field.rgb') : t('field.uniform')),
       unit,
       visible,
     };
@@ -1392,9 +1529,9 @@ export class App {
     }
 
     const b = view.bounds;
-    this.hud.set('显示点数', fmtInt(view.count));
+    this.hud.set('points', fmtInt(view.count));
     this.hud.set(
-      '包围盒',
+      'bbox',
       `${fmtNum(b.max[0] - b.min[0])} × ${fmtNum(b.max[1] - b.min[1])} × ${fmtNum(b.max[2] - b.min[2])}`
     );
   }
@@ -1421,7 +1558,7 @@ export class App {
         this.statusItems.set(key, value);
       } else {
         const item = h('div', { class: 'status-item' }, [
-          h('span', { class: 'dim', text: LABELS[key] ?? key }),
+          h('span', { class: 'dim', text: statusLabels()[key] ?? key }),
           value,
         ]);
         host.appendChild(item);
@@ -1430,8 +1567,8 @@ export class App {
     }
     host.appendChild(h('div', { class: 'topbar-spacer' }));
     const tipEl = h('div', { class: 'status-item' }, [
-      h('span', { class: 'dim', text: '快捷键' }),
-      h('span', { class: 'mono', text: 'O 打开 · M 测量 · F 归位 · 空格 旋转' }),
+      h('span', { class: 'dim', text: t('status.tip') }),
+      h('span', { class: 'mono', text: t('status.tipText') }),
     ]);
     host.appendChild(tipEl);
   }
@@ -1445,10 +1582,10 @@ export class App {
     const dot = this.statusItems.get('state:dot');
 
     const v = st.validation;
-    const verdict = !st.source ? ['', '未载入']
-      : v && !v.ok ? ['err', '不合规']
-      : v && v.needsDownsample ? ['warn', '合规（已降采样）']
-      : ['ok', '合规'];
+    const verdict = !st.source ? ['', t('status.notLoaded')]
+      : v && !v.ok ? ['err', t('status.invalid')]
+      : v && v.needsDownsample ? ['warn', t('status.downsampled')]
+      : ['ok', t('status.ok')];
     set('state', verdict[1]);
     if (dot) dot.className = `status-dot${verdict[0] ? ` ${verdict[0]}` : ''}`;
 
@@ -1460,24 +1597,24 @@ export class App {
       'points',
       st.source
         ? viewCount === srcCount
-          ? `${fmtInt(viewCount)} 点`
-          : `${fmtInt(viewCount)} / ${fmtInt(srcCount)} 点（${((viewCount / Math.max(1, srcCount)) * 100).toFixed(1)}%）`
+          ? t('status.pointsOne', { n: fmtInt(viewCount) })
+          : t('status.pointsRatio', { view: fmtInt(viewCount), src: fmtInt(srcCount), pct: ((viewCount / Math.max(1, srcCount)) * 100).toFixed(1) })
         : '—'
     );
 
     const r = st.render;
     const fieldText = r.colorMode === 'attribute'
-      ? `属性 ${r.attribute}${st.source?.units.get(r.attribute) ? ` ${st.source.units.get(r.attribute)}` : ''}`
-      : r.colorMode === 'elevation' ? '高程 Z'
-      : r.colorMode === 'rgb' ? '原色 RGB'
-      : '单色';
+      ? `${t('status.fieldAttr', { name: r.attribute })}${st.source?.units.get(r.attribute) ? ` ${st.source.units.get(r.attribute)}` : ''}`
+      : r.colorMode === 'elevation' ? t('field.elevation')
+      : r.colorMode === 'rgb' ? t('field.rgb')
+      : t('field.uniform');
     set('field', st.source ? `${fieldText} · ${this.effRangeSummary()}` : '—');
-    set('mode', st.ui.mode === 'measure' ? '剖面测量' : '浏览');
+    set('mode', st.ui.mode === 'measure' ? t('mode.measure') : t('mode.orbit'));
 
     const hv = this.hovered;
     set('hover', hv ? `#${hv.sourceIndex} → ${fmtNum(hv.position[0])}, ${fmtNum(hv.position[1])}, ${fmtNum(hv.position[2])}` : '—');
     set('fps', st.source ? `${this.viewer.fps.toFixed(0)} fps` : '—');
-    this.hud.set('相机距离', fmtNum(this.viewer.camera.position.distanceTo(this.viewer.controls.target)));
+    this.hud.set('camdist', fmtNum(this.viewer.camera.position.distanceTo(this.viewer.controls.target)));
   }
 
   private effRangeSummary(): string {
@@ -1504,15 +1641,17 @@ export class App {
   }
 }
 
-const LABELS: Record<string, string> = {
-  state: '校验',
-  file: '文件',
-  points: '点数',
-  field: '着色',
-  mode: '模式',
-  hover: '悬停',
-  fps: '渲染',
-};
+function statusLabels(): Record<string, string> {
+  return {
+    state: t('status.state'),
+    file: t('status.file'),
+    points: t('status.points'),
+    field: t('status.field'),
+    mode: t('status.mode'),
+    hover: t('status.hover'),
+    fps: t('status.fps'),
+  };
+}
 
 function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;

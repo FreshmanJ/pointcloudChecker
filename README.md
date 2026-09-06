@@ -12,7 +12,7 @@
 
 PointCloud Inspector is a web application for loading, validating, visualising and analysing 3D point clouds. Everything runs locally in the browser — **your files never leave your machine**. No backend, no upload, no account.
 
-![PointCloud Inspector — overview](docs/shots/overview.png)
+![PointCloud Inspector — overview](docs/shots/en/overview.png)
 
 ---
 
@@ -53,7 +53,7 @@ The overview shot above shows the bundled `demo_motor_winding` cloud loaded with
 
 Colour by any scalar attribute, by raw RGB from the file, by elevation (Z), or a single uniform colour. The LUT tab ships with built-in colormaps (viridis, terrain, thermal, jet, …) and the attribute name is used to **auto-guess** the right map (e.g. fields containing *temp* / *°C* get *thermal*). You can also import your own custom LUT as JSON.
 
-![Colouring — auto-mapping, percentile clipping, log/zero-offset toggles](docs/shots/coloring.png)
+![Colouring — auto-mapping, percentile clipping, log/zero-offset toggles](docs/shots/en/coloring.png)
 
 Controls include percentile-based low/high clipping, logarithmic mapping, a zero-offset offset, reversal and a divergence (diverging) mode for fields with a meaningful midpoint.
 
@@ -61,25 +61,25 @@ Controls include percentile-based low/high clipping, logarithmic mapping, a zero
 
 The *Scene* tab gives you a fine-grained control over the scene: viewport background colour, grid plane (none/XY/XZ/YZ), bounding box, coordinate axes, auto-rotate (turntable), one-click view presets (isometric, ±X/±Y/±Z), per-plane rotation and *frame all*. Themes (dark/light) link the panel surfaces and the canvas background.
 
-![Scene — environment, view presets, rotation, performance](docs/shots/scene.png)
+![Scene — environment, view presets, rotation, performance](docs/shots/en/scene.png)
 
 ### Smart downsampling
 
 The *Sampling* tab exposes four strategies — **voxel**, **random**, **uniform**, **none** — that operate on index buffers so the source arrays are never copied. Targets can be set explicitly or auto-sized; voxel edge length is auto-estimated when the *target* mode is on. Quick-pick chips (`100k / 300k / 800k / 1.5M / 3M`) cover common working-set sizes. A live *downsampling stats* card reports point counts and decimation ratio.
 
-![Downsampling — voxel/random/uniform, quick targets, live stats](docs/shots/downsample.png)
+![Downsampling — voxel/random/uniform, quick targets, live stats](docs/shots/en/downsample.png)
 
 ### Compliance validation
 
 Every freshly-parsed cloud is run through a compliance check that detects invalid coordinates, duplicate ratios, suspicious coordinate magnitudes (often a unit mistake) and the fraction of points carrying RGB. The *Compliance report* dock surfaces all issues at a glance and recommends a safe target count when the cloud exceeds the soft limit.
 
-![Compliance report — issue list and recommendations](docs/shots/report.png)
+![Compliance report — issue list and recommendations](docs/shots/en/report.png)
 
 ### Non-destructive filtering
 
 Build an arbitrary set of rules against X/Y/Z axes or named scalar attributes, in **range** mode (min/max) or **set** mode (e.g. LAS classification codes). Rules combine with **AND / OR** logic, can be individually toggled, and compose with downsampling and colouring without touching the source data. A live *filter stats* card shows how many points survive each pass.
 
-![Filtering — range/set rules with AND/OR combination logic](docs/shots/filters.png)
+![Filtering — range/set rules with AND/OR combination logic](docs/shots/en/filters.png)
 
 ### Section / profile analysis
 
@@ -87,7 +87,7 @@ Pick two points (A and B) on the cloud to define a segment; the profiler samples
 
 You define the segment in [Line / segment measurement](#line--segment-measurement).
 
-![Profile analysis — section definition and statistics panel](docs/shots/profile.png)
+![Profile analysis — section definition and statistics panel](docs/shots/en/profile.png)
 
 ### Line / segment measurement
 
@@ -95,7 +95,7 @@ Switch to **measure mode** (the *剖面测量* / section-measure mode) from the 
 
 The segment you define also drives the section / profile analysis: once A and B are set, the profiler samples a cylindrical tube around the line and reduces it to the 1-D curve described in [Section / profile analysis](#section--profile-analysis).
 
-![Line / segment measurement — pick A then B, segment overlay and length readout](docs/shots/measure.png)
+![Line / segment measurement — pick A then B, segment overlay and length readout](docs/shots/en/measure.png)
 
 ### Spatial picking
 
@@ -105,7 +105,7 @@ The segment you define also drives the section / profile analysis: once A and B 
 
 The camera button in the top bar opens the **image export** dialog. Configure an optional title, toggle the colour-bar / legend, and choose the output size (match the viewport or a fixed resolution), then export the current rendered viewport as a **PNG**. The background follows your scene settings, so the export matches exactly what you see on screen.
 
-![Image export — title, colour bar and size options](docs/shots/export.png)
+![Image export — title, colour bar and size options](docs/shots/en/export.png)
 
 ### Data & session export
 
@@ -199,7 +199,7 @@ pointcloudChecker/
 │  │  ├─ columnDialog.ts   # Text column mapping
 │  │  ├─ legend.ts chart.ts controls.ts dom.ts
 │  └─ styles/              # Design tokens → base → components → app shell
-├─ docs/shots/             # README screenshots (regenerated by scripts/readme-shots.mjs)
+├─ docs/shots/             # README screenshots, per language: en/ (English UI), zh/ (Chinese UI)
 ├─ scripts/                # Build/CI smoke tests & interaction probes
 └─ vite.config.ts
 ```
@@ -231,7 +231,7 @@ The architecture separates **`core`** (pure, DOM-free algorithms), **`io`** (par
 | `npm run typecheck` | Run TypeScript type checks without emitting. |
 | `npm run smoke` | Node smoke test of the core parsing pipeline. |
 | `npm run smoke:browser` | Headless browser interaction smoke test. |
-| `node scripts/readme-shots.mjs` | Regenerate the README screenshots in `docs/shots/` (requires `npm run dev` on `:5173`). |
+| `node scripts/readme-shots.mjs [url] [lang]` | Regenerate the README screenshots for the given language into `docs/shots/<lang>/` (requires `npm run dev`; defaults to `en`). |
 
 ---
 

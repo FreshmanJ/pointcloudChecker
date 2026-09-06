@@ -4,6 +4,7 @@
  */
 
 import type { PointCloudData } from '../core/cloud';
+import { t, tMeta } from '../i18n';
 import { finishCloud, yieldUI, type ProgressFn } from './common';
 import type { ParseOutcome } from './common';
 
@@ -60,7 +61,7 @@ export async function parsePLY(file: File, onProgress?: ProgressFn): Promise<Par
   };
 
   const magic = readLine().trim();
-  if (magic !== 'ply' && magic !== 'PLY') throw new Error('不是有效的 PLY 文件（缺少 ply 魔数）');
+  if (magic !== 'ply' && magic !== 'PLY') throw new Error(t('io.err.plyMagic'));
 
   let format = 'ascii';
   let vertexCount = 0;
@@ -110,16 +111,16 @@ export async function parsePLY(file: File, onProgress?: ProgressFn): Promise<Par
     }
   }
 
-  if (vertexCount <= 0) throw new Error('PLY 中没有 vertex 元素');
+  if (vertexCount <= 0) throw new Error(t('io.err.plyNoVertex'));
   if (format !== 'ascii' && !/^binary_(little|big)_endian$/.test(format)) {
-    warnings.push(`未知的 PLY format「${format}」，按小端二进制尝试解析。`);
+    warnings.push(t('io.warn.plyFmt', { f: format }));
   }
   const little = format !== 'binary_big_endian';
 
   const xi = vertexProps.findIndex((p) => !p.isList && p.name.toLowerCase() === 'x');
   const yi = vertexProps.findIndex((p) => !p.isList && p.name.toLowerCase() === 'y');
   const zi = vertexProps.findIndex((p) => !p.isList && p.name.toLowerCase() === 'z');
-  if (xi < 0 || yi < 0 || zi < 0) throw new Error('PLY 缺少 x / y / z 属性');
+  if (xi < 0 || yi < 0 || zi < 0) throw new Error(t('io.err.plyNoXYZ'));
 
   const findColor = (c: 0 | 1 | 2): number => {
     for (const key of Object.keys(COLOR)) {
@@ -171,7 +172,7 @@ export async function parsePLY(file: File, onProgress?: ProgressFn): Promise<Par
   }
 
   /* ────────── body ────────── */
-  onProgress?.(0.2, `解析 ${vertexCount.toLocaleString()} 个顶点…`);
+  onProgress?.(0.2, t('io.prog.plyVertex', { n: vertexCount.toLocaleString() }));
   await yieldUI();
 
   if (format === 'ascii') {
@@ -195,7 +196,7 @@ export async function parsePLY(file: File, onProgress?: ProgressFn): Promise<Par
       assign(vals);
       p++;
       if ((p & 0x7ffff) === 0) {
-        onProgress?.(0.2 + 0.7 * (li / lines.length), `解析 ASCII… ${p.toLocaleString()}`);
+        onProgress?.(0.2 + 0.7 * (li / lines.length), t('io.prog.plyAscii', { n: p.toLocaleString() }));
         await yieldUI();
       }
     }
@@ -208,7 +209,7 @@ export async function parsePLY(file: File, onProgress?: ProgressFn): Promise<Par
     );
     if (maxPoints < vertexCount) {
       warnings.push(
-        `数据段不足：声明 ${vertexCount.toLocaleString()} 点，实际可读取 ${maxPoints.toLocaleString()} 点。`
+        t('io.warn.plyTrunc', { v: vertexCount.toLocaleString(), m: maxPoints.toLocaleString() })
       );
     }
     const vals: number[] = new Array(vertexProps.filter((p) => !p.isList).length).fill(0);
@@ -230,7 +231,7 @@ export async function parsePLY(file: File, onProgress?: ProgressFn): Promise<Par
       assign(vals);
       byteOffset = local;
       if ((i & 0xfffff) === 0 && i > 0) {
-        onProgress?.(0.2 + 0.7 * (i / maxPoints), `解析二进制… ${i.toLocaleString()}`);
+        onProgress?.(0.2 + 0.7 * (i / maxPoints), t('io.prog.plyBinary', { n: i.toLocaleString() }));
         await yieldUI();
       }
     }
@@ -238,7 +239,7 @@ export async function parsePLY(file: File, onProgress?: ProgressFn): Promise<Par
   }
 
   if (otherElements.length) {
-    warnings.push(`已忽略 ${otherElements.map((e) => `${e.name}(${e.count})`).join('、')} 元素。`);
+    warnings.push(t('io.warn.plyIgnore', { list: otherElements.map((e) => `${e.name}(${e.count})`).join('、') }));
   }
 
   const data: PointCloudData = finishCloud(
@@ -250,14 +251,14 @@ export async function parsePLY(file: File, onProgress?: ProgressFn): Promise<Par
       scalarOrder,
       warnings,
       meta: {
-        属性: vertexProps.filter((p) => !p.isList).map((p) => p.name).join(' '),
-        编码: format,
+        [tMeta('属性')]: vertexProps.filter((p) => !p.isList).map((p) => p.name).join(' '),
+        [tMeta('编码')]: format,
       },
     },
     file.name,
     'PLY'
   );
-  onProgress?.(1, '完成');
+  onProgress?.(1, t('io.prog.done'));
   return { data, warnings };
 }
 

@@ -9,6 +9,7 @@
  */
 
 import type { PointCloudData } from '../core/cloud';
+import { t, tMeta } from '../i18n';
 import {
   classifyColumn,
   detectDelimiter,
@@ -110,7 +111,7 @@ export function autoCoordIndices(ncols: number, headerTokens: string[], hasHeade
 export async function previewTextColumns(file: File): Promise<TextColumnPreview> {
   const ext = extOf(file.name);
   const text = await file.text();
-  if (!text || text.trim().length === 0) throw new Error('文件为空');
+  if (!text || text.trim().length === 0) throw new Error(t('io.err.textEmpty'));
 
   const head = inspectTextHeader(text, ext);
   const { startOffset, delim, hasHeader, headerTokens, ncols, declaredCount } = head;
@@ -162,7 +163,7 @@ export async function previewTextColumns(file: File): Promise<TextColumnPreview>
 
   const columns = Array.from({ length: ncols }, (_, c) => ({
     index: c,
-    name: hasHeader && headerTokens[c] ? normalizeName(headerTokens[c]) : `列 ${c + 1}`,
+    name: hasHeader && headerTokens[c] ? normalizeName(headerTokens[c]) : t('col.nth', { n: c + 1 }),
     sample: samples[c],
     validCount: valid[c],
   }));
@@ -177,10 +178,10 @@ export async function parseTextPoints(
 ): Promise<ParseOutcome> {
   const ext = extOf(file.name);
   const warnings: string[] = [];
-  onProgress?.(0.02, '读取文件…');
+  onProgress?.(0.02, t('io.prog.readFile'));
   const text = await file.text();
   if (!text || text.trim().length === 0) {
-    throw new Error('文件为空');
+    throw new Error(t('io.err.textEmpty'));
   }
 
   const head = inspectTextHeader(text, ext);
@@ -228,17 +229,18 @@ export async function parseTextPoints(
       else if (!used.y && i === coord.y) { p.kind = 'y'; used.y = true; }
       else if (!used.z && selection?.mode !== '2d' && i === coord.z) { p.kind = 'z'; used.z = true; }
     });
-    if (ncols < 3 && selection?.mode === '3d') throw new Error('至少需要 3 列数值作为 X/Y/Z 坐标');
-    warnings.push('坐标列映射异常，已按默认方式解释坐标。');
+    if (ncols < 3 && selection?.mode === '3d') throw new Error(t('io.err.textNeed3Col'));
+    warnings.push(t('io.warn.textCoordMap'));
   }
 
   if (selection) {
-    const zNote = selection.mode === '2d' ? '（二维，Z 固定为 0）' : '';
-    warnings.push(`坐标列由用户指定：X=#${coord.x + 1} Y=#${coord.y + 1}` + (selection.mode === '3d' ? ` Z=#${coord.z + 1}` : '') + zNote);
+    const zNote = selection.mode === '2d' ? t('col.zFixedNote') : '';
+    const zPart = selection.mode === '3d' ? ` Z=#${coord.z + 1}` : '';
+    warnings.push(t('io.warn.textCoordManual', { x: coord.x + 1, y: coord.y + 1, z: zPart, note: zNote }));
   }
 
   // ── Count rows ──
-  onProgress?.(0.1, '统计行数…');
+  onProgress?.(0.1, t('io.prog.textCountRows'));
   let lineCount = 0;
   let scanIdx = startOffset - 1;
   while ((scanIdx = text.indexOf('\n', scanIdx + 1)) >= 0) lineCount++;
@@ -251,9 +253,9 @@ export async function parseTextPoints(
   let rows = 0;
   let dataRows = 0; // candidate rows (>=3 fields) seen
   let coordBad = 0; // candidate rows rejected for non-finite X/Y/Z
-  const delimLabel = delim === 44 ? ',' : delim === 59 ? ';' : delim === 9 ? '\\t' : '空格';
+  const delimLabel = delim === 44 ? ',' : delim === 59 ? ';' : delim === 9 ? '\\t' : t('col.delimSpace');
 
-  onProgress?.(0.18, '解析坐标…');
+  onProgress?.(0.18, t('io.prog.parseCoords'));
   const rowBuf = new Float64Array(width + 8);
   let i = startOffset;
   if (hasHeader) {
@@ -299,7 +301,7 @@ export async function parseTextPoints(
     i = next;
     if (rows - lastReport > 250_000) {
       lastReport = rows;
-      onProgress?.(0.18 + 0.55 * Math.min(1, i / text.length), `解析坐标… ${rows.toLocaleString()}`);
+      onProgress?.(0.18 + 0.55 * Math.min(1, i / text.length), t('io.prog.textParseCoords', { n: rows.toLocaleString() }));
       await yieldUI();
     }
   }
@@ -307,19 +309,19 @@ export async function parseTextPoints(
   if (rows === 0) {
     if (dataRows > 0 && coordBad === dataRows) {
       throw new Error(
-        `已读取 ${dataRows} 行数据，但所选 X / Y / Z 坐标列全部为非有限数值。` +
-          `请检查：①坐标列选择是否正确；②分隔符识别是否为「${delimLabel}」；③首行是否被误判为表头。`
+        t('io.err.textAllNonFinite', { r: dataRows, d: delimLabel }) +
+          ''
       );
     }
     if (dataRows > 0) {
       throw new Error(
-        `已读取 ${dataRows} 行数据，但没有任何一行能同时解析出有效的 X / Y / Z 坐标（坐标列存在非数值或缺失）。请重新选择坐标列或检查文件格式。`
+        t('io.err.textNoRowXYZ', { r: dataRows })
       );
     }
-    throw new Error('未解析到任何有效数据行（分隔符或表头可能识别有误，请检查文件格式）。');
+    throw new Error(t('io.err.textNoValidRows'));
   }
 
-  onProgress?.(0.78, '整理属性…');
+  onProgress?.(0.78, t('io.prog.textArrangeAttr'));
   await yieldUI();
 
   const positions = new Float32Array(rows * 3);
@@ -388,12 +390,12 @@ export async function parseTextPoints(
         const k = scalarOrder.indexOf(s.name);
         if (k >= 0) scalarOrder.splice(k, 1);
       }
-      warnings.push('末 3 列数值均在 0–255 范围内，已按 RGB 颜色解释。');
+      warnings.push(t('io.warn.textRgb'));
     }
   }
 
   if (declaredCount > 0 && declaredCount !== rows) {
-    warnings.push(`PTS 头部声明 ${declaredCount.toLocaleString()} 点，实际读到 ${rows.toLocaleString()} 点。`);
+    warnings.push(t('io.warn.textPtsCount', { d: declaredCount.toLocaleString(), r: rows.toLocaleString() }));
   }
 
   const data: PointCloudData = finishCloud(
@@ -405,19 +407,19 @@ export async function parseTextPoints(
       scalarOrder,
       warnings,
       meta: {
-        列数: String(ncols),
-        表头: hasHeader ? '有' : '无',
-        分隔符: delimLabel,
-        坐标列: selection
+        [tMeta('列数')]: String(ncols),
+        [tMeta('表头')]: hasHeader ? t('file.yes') : t('file.no'),
+        [tMeta('分隔符')]: delimLabel,
+        [tMeta('坐标列')]: selection
           ? `X#${coord.x + 1} Y#${coord.y + 1}` + (selection.mode === '3d' ? ` Z#${coord.z + 1}` : ' (2D)')
-          : '自动',
+          : t('col.auto'),
       },
     },
     file.name,
     ext.toUpperCase()
   );
 
-  onProgress?.(1, '完成');
+  onProgress?.(1, t('io.prog.done'));
   return { data, warnings };
 }
 

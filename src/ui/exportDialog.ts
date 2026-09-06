@@ -16,6 +16,7 @@
 import { denormalize } from '../core/state';
 import { paintLUT } from '../core/colormap';
 import { downloadDataURL } from '../io/export';
+import { t } from '../i18n';
 import { fmtNum, h, icon, toast } from './dom';
 import { check, colorInput, numberInput, segmented, select, slider } from './controls';
 import type { Viewer } from '../render/Viewer';
@@ -156,7 +157,7 @@ function defaultConfig(ctx: ExportContext): ImageExportConfig {
   const vh = ctx.viewer.canvas.clientHeight || 720;
   return {
     showTitle: true,
-    title: ctx.baseName || '点云图像',
+    title: ctx.baseName || t('export.defaultTitle'),
     titleSize: 22,
     titleFont: 'sans',
     titleBold: true,
@@ -553,8 +554,8 @@ export function openImageExportDialog(ctx: ExportContext): void {
   const previewMeta = h('div', { class: 'export-preview-meta mono' });
   const previewBox = h('div', { class: 'export-preview-box' }, [previewCanvas]);
   const resetPosBtn = h('button', {
-    class: 'btn btn-sm btn-ghost', type: 'button', title: '将标题与色卡恢复到默认位置',
-  }, [h('span', { text: '重置标注位置' })]);
+    class: 'btn btn-sm btn-ghost', type: 'button', title: t('export.resetPosTitle'),
+  }, [h('span', { text: t('export.resetPos') })]);
 
   /** Overlay hit rects (buffer px) from the last preview render. */
   const hit: ExportHitRects = { title: null, bar: null };
@@ -594,7 +595,12 @@ export function openImageExportDialog(ctx: ExportContext): void {
     const outW = cfg.width * cfg.scale;
     const outH = cfg.height * cfg.scale;
     previewMeta.textContent =
-      `输出 ${outW} × ${outH} px · ${cfg.background === null ? '透明背景' : '不透明'} · 缩略 ${px.toFixed(2)}×`;
+      t('export.meta', {
+        w: outW,
+        h: outH,
+        bg: cfg.background === null ? t('export.bgTransparent') : t('export.bgOpaque'),
+        s: px.toFixed(2),
+      });
   }
 
   /* ── dragging on the preview ── */
@@ -666,14 +672,14 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const titleFontCtl = select<TitleFont>({
-    label: '字体',
+    label: t('export.font'),
     value: cfg.titleFont,
     options: [
-      { value: 'sans', label: '系统默认' },
-      { value: 'hei', label: '黑体' },
-      { value: 'serif', label: '衬线（宋体）' },
-      { value: 'kai', label: '楷体' },
-      { value: 'mono', label: '等宽' },
+      { value: 'sans', label: t('export.fontSans') },
+      { value: 'hei', label: t('export.fontHei') },
+      { value: 'serif', label: t('export.fontSerif') },
+      { value: 'kai', label: t('export.fontKai') },
+      { value: 'mono', label: t('export.fontMono') },
     ],
     onChange: (v) => {
       cfg.titleFont = v;
@@ -682,7 +688,7 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const titleBoldCtl = check({
-    label: '粗体',
+    label: t('export.bold'),
     value: cfg.titleBold,
     onChange: (v) => {
       cfg.titleBold = v;
@@ -691,7 +697,7 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const titleSizeCtl = slider({
-    label: '标题字号',
+    label: t('export.titleSize'),
     min: 10,
     max: 72,
     step: 1,
@@ -704,7 +710,7 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const titleGroup = h('div', { class: 'export-group' }, [
-    groupTitle('标题', cfg.showTitle, (v) => {
+    groupTitle(t('export.title'), cfg.showTitle, (v) => {
       cfg.showTitle = v;
       paintDisabled();
       schedulePreview();
@@ -718,12 +724,12 @@ export function openImageExportDialog(ctx: ExportContext): void {
 
   /* ── group: 色卡 ── */
   const barPosCtl = select<BarPosition>({
-    label: '位置',
+    label: t('export.barPos'),
     value: cfg.barPosition,
     options: [
-      { value: 'right', label: '右侧' },
-      { value: 'left', label: '左侧' },
-      { value: 'bottom', label: '底部' },
+      { value: 'right', label: t('export.barRight') },
+      { value: 'left', label: t('export.barLeft') },
+      { value: 'bottom', label: t('export.barBottom') },
     ],
     onChange: (v) => {
       cfg.barPosition = v;
@@ -733,13 +739,13 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const barHeightCtl = slider({
-    label: '高度（长度）',
+    label: t('export.barHeight'),
     min: 80,
     max: 640,
     step: 2,
     value: cfg.barHeight,
     format: (v) => `${v} px`,
-    hint: '竖直色卡的长度；底部色卡时为宽度。',
+    hint: t('export.barHeightHint'),
     onInput: (v) => {
       cfg.barHeight = v;
       schedulePreview();
@@ -747,13 +753,13 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const barScaleCtl = slider({
-    label: '色卡缩放',
+    label: t('export.barScale'),
     min: 0.5,
     max: 2,
     step: 0.05,
     value: cfg.barScale,
     format: (v) => `${v.toFixed(2)}×`,
-    hint: '缩放色条宽度与刻度 / 标签字号。',
+    hint: t('export.barScaleHint'),
     onInput: (v) => {
       cfg.barScale = v;
       schedulePreview();
@@ -761,7 +767,7 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const barTicksCtl = numberInput({
-    label: '刻度数',
+    label: t('export.barTicks'),
     value: cfg.barTicks,
     min: 2,
     max: 11,
@@ -773,7 +779,7 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const barLabelInput = h('input', {
-    class: 'input', type: 'text', value: cfg.barLabel, placeholder: '色卡标签（如：高程 Z）',
+    class: 'input', type: 'text', value: cfg.barLabel, placeholder: t('export.barLabel'),
   }) as HTMLInputElement;
   barLabelInput.addEventListener('input', () => {
     cfg.barLabel = barLabelInput.value;
@@ -781,7 +787,7 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const barUnitInput = h('input', {
-    class: 'input', type: 'text', value: cfg.barUnit, placeholder: '单位（如：m / °C）',
+    class: 'input', type: 'text', value: cfg.barUnit, placeholder: t('export.barUnit'),
   }) as HTMLInputElement;
   barUnitInput.addEventListener('input', () => {
     cfg.barUnit = barUnitInput.value;
@@ -789,7 +795,7 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const barGroup = h('div', { class: 'export-group' }, [
-    groupTitle('色卡', cfg.showBar, (v) => {
+    groupTitle(t('export.bar'), cfg.showBar, (v) => {
       cfg.showBar = v;
       paintDisabled();
       schedulePreview();
@@ -799,14 +805,14 @@ export function openImageExportDialog(ctx: ExportContext): void {
       barHeightCtl.el,
       barScaleCtl.el,
       barTicksCtl.el,
-      field('标签', barLabelInput),
-      field('单位', barUnitInput),
+      field(t('export.label'), barLabelInput),
+      field(t('export.unit'), barUnitInput),
     ]),
   ]);
 
   /* ── group: 图像 ── */
   const widthCtl = numberInput({
-    label: '宽度',
+    label: t('export.width'),
     value: cfg.width,
     min: MIN_DIM,
     max: MAX_DIM,
@@ -825,7 +831,7 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const heightCtl = numberInput({
-    label: '高度',
+    label: t('export.height'),
     value: cfg.height,
     min: MIN_DIM,
     max: MAX_DIM,
@@ -844,15 +850,15 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const lockAspectCtl = check({
-    label: '锁定比例',
+    label: t('export.lockAspect'),
     value: true,
     onChange: (v) => {
       if (v) aspect = cfg.width / Math.max(1, cfg.height);
     },
   });
 
-  const viewportBtn = h('button', { class: 'btn btn-sm btn-ghost', type: 'button', title: '将宽高设为当前视口尺寸' }, [
-    h('span', { text: '视口尺寸' }),
+  const viewportBtn = h('button', { class: 'btn btn-sm btn-ghost', type: 'button', title: t('export.viewportTitle') }, [
+    h('span', { text: t('export.viewportSize') }),
   ]);
   viewportBtn.addEventListener('click', () => {
     cfg.width = clamp(ctx.viewer.canvas.clientWidth || cfg.width, MIN_DIM, MAX_DIM);
@@ -864,7 +870,7 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const scaleCtl = segmented({
-    label: '分辨率',
+    label: t('export.resolution'),
     value: String(cfg.scale),
     options: [1, 2, 3, 4].map((s) => ({ value: String(s), label: `${s}×` })),
     onChange: (v) => {
@@ -874,7 +880,7 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const bgCtl = colorInput({
-    label: '背景色',
+    label: t('export.bg'),
     value: cfg.background ?? ctx.background,
     onChange: (v) => {
       cfg.background = v;
@@ -884,8 +890,8 @@ export function openImageExportDialog(ctx: ExportContext): void {
     },
   });
 
-  const bgReset = h('button', { class: 'btn btn-sm btn-ghost', type: 'button', title: '恢复为当前视口背景色' }, [
-    h('span', { text: '当前' }),
+  const bgReset = h('button', { class: 'btn btn-sm btn-ghost', type: 'button', title: t('export.bgResetTitle') }, [
+    h('span', { text: t('export.bgCurrent') }),
   ]);
   bgReset.addEventListener('click', () => {
     cfg.background = ctx.background;
@@ -896,7 +902,7 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const transparentCtl = check({
-    label: '透明背景',
+    label: t('export.transparent'),
     value: cfg.background === null,
     onChange: (v) => {
       cfg.background = v ? null : bgCtl.get();
@@ -906,12 +912,12 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const textColorCtl = select<TextColorMode>({
-    label: '文字颜色',
+    label: t('export.textColor'),
     value: cfg.textColor,
     options: [
-      { value: 'auto', label: '自动' },
-      { value: 'light', label: '浅色' },
-      { value: 'dark', label: '深色' },
+      { value: 'auto', label: t('export.textAuto') },
+      { value: 'light', label: t('export.textLight') },
+      { value: 'dark', label: t('export.textDark') },
     ],
     onChange: (v) => {
       cfg.textColor = v;
@@ -920,7 +926,7 @@ export function openImageExportDialog(ctx: ExportContext): void {
   });
 
   const imageGroup = h('div', { class: 'export-group' }, [
-    groupTitle('图像', true, null),
+    groupTitle(t('export.imageGroup'), true, null),
     h('div', { class: 'export-group-body' }, [
       h('div', { class: 'export-row' }, [widthCtl.el, heightCtl.el]),
       h('div', { class: 'export-row export-row-tight' }, [lockAspectCtl.el, viewportBtn]),
@@ -940,18 +946,18 @@ export function openImageExportDialog(ctx: ExportContext): void {
   /* ── header / footer ── */
   const head = h('div', { class: 'modal-head' }, [
     h('div', { class: 'modal-head-text' }, [
-      h('div', { class: 'modal-title' }, ['图像导出']),
-      h('div', { class: 'modal-sub', text: '配置标题、色卡与分辨率，拖拽预览中的标注可调整位置' }),
+      h('div', { class: 'modal-title' }, [t('export.image')]),
+      h('div', { class: 'modal-sub', text: t('export.imageSub') }),
     ]),
-    h('button', { class: 'icon-btn modal-close', type: 'button', title: '取消' }, [icon('close', 15)]),
+    h('button', { class: 'icon-btn modal-close', type: 'button', title: t('export.cancel') }, [icon('close', 15)]),
   ]);
 
   const form = h('div', { class: 'export-form' }, [titleGroup, barGroup, imageGroup]);
   const preview = h('div', { class: 'export-preview' }, [
-    h('div', { class: 'export-preview-label', text: '实时预览' }),
+    h('div', { class: 'export-preview-label', text: t('export.preview') }),
     previewBox,
     previewMeta,
-    h('div', { class: 'export-preview-hint', text: '可直接拖拽预览中的标题与色卡调整位置。' }),
+    h('div', { class: 'export-preview-hint', text: t('export.previewHint') }),
     resetPosBtn,
   ]);
 
@@ -959,8 +965,8 @@ export function openImageExportDialog(ctx: ExportContext): void {
     h('div', { class: 'export-layout' }, [form, preview]),
   ]);
 
-  const cancelBtn = h('button', { class: 'btn btn-ghost', type: 'button', text: '取消' });
-  const okBtn = h('button', { class: 'btn btn-primary', type: 'button', text: '导出 PNG' });
+  const cancelBtn = h('button', { class: 'btn btn-ghost', type: 'button', text: t('export.cancel') });
+  const okBtn = h('button', { class: 'btn btn-primary', type: 'button', text: t('export.exportPng') });
   const foot = h('div', { class: 'modal-foot' }, [cancelBtn, okBtn]);
 
   const card = h('div', { class: 'modal export-modal' }, [head, body, foot]);
@@ -984,8 +990,8 @@ export function openImageExportDialog(ctx: ExportContext): void {
     if (outW > cap || outH > cap) {
       toast(
         'warn',
-        '尺寸超出上限',
-        `${outW} × ${outH} 超过渲染上限 ${cap} px，请降低分辨率或缩小尺寸。`
+        t('export.tooLarge'),
+        t('export.tooLargeDesc', { size: `${outW} × ${outH}`, cap })
       );
       return;
     }
@@ -994,7 +1000,7 @@ export function openImageExportDialog(ctx: ExportContext): void {
     out.height = outH;
     const c2d = out.getContext('2d');
     if (!c2d) {
-      toast('err', '导出失败', '无法创建画布上下文。');
+      toast('err', t('export.failed'), t('export.failedCtx'));
       return;
     }
     try {
@@ -1004,11 +1010,11 @@ export function openImageExportDialog(ctx: ExportContext): void {
       const url = out.toDataURL('image/png');
       downloadDataURL(url, `${ctx.baseName || 'pointcloud'}_${outW}x${outH}.png`);
       persist(cfg);
-      toast('ok', '图像已导出', `${outW} × ${outH} px PNG${cfg.background === null ? '（透明背景）' : ''}。`);
+      toast('ok', t('export.done'), t('export.doneDesc', { size: `${outW} × ${outH}`, bg: cfg.background === null ? t('export.bgTransparent') : '' }));
       cleanup();
     } catch (err) {
       ctx.viewer.renderRestore();
-      toast('err', '导出失败', err instanceof Error ? err.message : String(err));
+      toast('err', t('export.failed'), err instanceof Error ? err.message : String(err));
     }
   }
 

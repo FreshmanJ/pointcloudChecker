@@ -2,6 +2,7 @@
 
 import type { ProfileResult } from '../core/profile';
 import { fmtNum } from './dom';
+import { t } from '../i18n';
 
 export interface ChartTheme {
   bg: string;
@@ -125,7 +126,7 @@ export class ProfileChart {
       ctx.fillStyle = theme.text;
       ctx.font = '12px var(--font-ui)';
       ctx.textAlign = 'center';
-      ctx.fillText('在「剖面分析」中选择起点与终点后，这里会显示沿程曲线', w / 2, h / 2);
+      ctx.fillText(t('profile.chartEmpty'), w / 2, h / 2);
       return;
     }
 
@@ -230,10 +231,10 @@ export class ProfileChart {
     // extremes
     const st = res.stats;
     if (Number.isFinite(st.minAt)) {
-      this.marker(ctx, sx(st.minAt), sy(st.min), '#7fd3ff', `min ${fmtNum(st.min)}`);
+      this.marker(ctx, sx(st.minAt), sy(st.min), '#7fd3ff', t('chart.min', { v: fmtNum(st.min) }));
     }
     if (Number.isFinite(st.maxAt)) {
-      this.marker(ctx, sx(st.maxAt), sy(st.max), '#ff8f6b', `max ${fmtNum(st.max)}`);
+      this.marker(ctx, sx(st.maxAt), sy(st.max), '#ff8f6b', t('chart.max', { v: fmtNum(st.max) }));
     }
 
     // crosshair
@@ -256,7 +257,7 @@ export class ProfileChart {
       ctx.fillStyle = theme.accent;
       ctx.fill();
 
-      const label = `${fmtNum(this.hover.distance)} → ${fmtNum(this.hover.value)}${this.unit}`;
+      const label = t('profile.hoverFmt', { d: fmtNum(this.hover.distance), v: fmtNum(this.hover.value), u: this.unit });
       ctx.font = '11px var(--font-mono)';
       const tw = ctx.measureText(label).width + 12;
       let bx = px + 10;
@@ -282,7 +283,7 @@ export class ProfileChart {
     ctx.fillText(`${this.fieldLabel}${this.unit ? ` (${this.unit})` : ''}`, 6, 4);
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
-    ctx.fillText('沿线距离', w - 6, h - 4);
+    ctx.fillText(t('profile.axisDist'), w - 6, h - 4);
   }
 
   private marker(ctx: CanvasRenderingContext2D, x: number, y: number, color: string, label: string): void {
