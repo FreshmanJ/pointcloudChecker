@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .tmp/
+.wrangler/
 
 # Local editor / OS noise
 .DS_Store
