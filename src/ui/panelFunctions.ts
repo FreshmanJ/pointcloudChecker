@@ -643,10 +643,10 @@ function buildProfilePage(app: App): PageHandle {
   });
 
   const bins = slider({
-    label: t('profile.bins'),
-    min: 20,
-    max: 400,
-    step: 10,
+    label: t('profile.samples'),
+    min: 2,
+    max: 600,
+    step: 1,
     value: st.measure.bins,
     format: (v) => `${Math.round(v)}`,
     onInput: (v) => app.setMeasureOption({ bins: Math.round(v) }),

@@ -5,10 +5,11 @@ import type { App } from '../app';
 import type { AttributeStats } from '../core/cloud';
 import { LUT_SIZE } from '../core/colormap';
 import type { Issue } from '../core/validate';
+import type { ProfileMethod } from '../core/profile';
 import { ProfileChart, type ChartHover } from './chart';
 import { t } from '../i18n';
 import { fmtInt, fmtNum, h, icon } from './dom';
-import { emptyState, hint } from './controls';
+import { emptyState, hint, numberInput, section, buttonRow, select, slider } from './controls';
 import { rgbBytesToHex } from '../core/colormap';
 
 interface DockPage {
@@ -327,16 +328,78 @@ function buildProfilePage(app: App): DockPage {
   const chart = new ProfileChart();
   const box = h('div', { class: 'chart-canvas-box' }, [chart.el]);
 
-  const statsGrid = h('div', { class: 'chart-stats' });
-  const readout = h('div', { class: 'mono dim', style: 'font-size:11px', text: t('profile.hoverReadout') });
-  const side = h('div', { class: 'chart-side' }, [statsGrid, readout]);
+  // ── sampling settings ──
+  const secSample = section(t('profile.sampleTitle'), { icon: 'sliders' });
 
+  const samples = numberInput({
+    label: t('profile.samples'),
+    value: app.state.measure.bins,
+    step: 1,
+    min: 2,
+    max: 2000,
+    onInput: (v) => app.setMeasureOption({ bins: clampSamples(v) }),
+  });
+
+  const method = select<ProfileMethod>({
+    label: t('profile.method'),
+    options: [
+      { value: 'idw', label: t('profile.methodIdw') },
+      { value: 'mean', label: t('profile.methodMean') },
+      { value: 'nearest', label: t('profile.methodNearest') },
+    ],
+    value: app.state.measure.method,
+    onChange: (v) => app.setMeasureOption({ method: v }),
+  });
+
+  const radius = slider({
+    label: t('profile.radius'),
+    min: 0,
+    max: 100,
+    step: 0.5,
+    value: radiusTFromValue(app, app.state.measure.radius),
+    format: (v) => (v <= 0 ? t('profile.radiusAuto') : fmtNum(radiusFromT(app, v))),
+    onInput: (v) => app.setMeasureOption({ radius: v <= 0 ? 0 : radiusFromT(app, v) }),
+  });
+
+  secSample.body.appendChild(samples.el);
+  secSample.body.appendChild(method.el);
+  secSample.body.appendChild(radius.el);
+  secSample.body.appendChild(hint(t('profile.methodHint')));
+
+  // ── stats ──
+  const statsGrid = h('div', { class: 'chart-stats' });
+  const readoutMain = h('div', { class: 'mono dim', style: 'font-size:11px', text: t('profile.hoverReadout') });
+  const readoutXyz = h('div', { class: 'mono dim', style: 'font-size:11px;opacity:.75' });
+  const readout = h('div', { class: 'chart-readout' }, [readoutMain, readoutXyz]);
+
+  // ── data actions ──
+  const copyBtn = h('button', { class: 'btn btn-sm', type: 'button' }, [
+    icon('copy', 13),
+    h('span', { text: t('profile.copyData') }),
+  ]);
+  copyBtn.addEventListener('click', () => void app.copyProfileData());
+
+  const csvBtn = h('button', { class: 'btn btn-sm', type: 'button' }, [
+    icon('download', 13),
+    h('span', { text: t('profile.exportTable') }),
+  ]);
+  csvBtn.addEventListener('click', () => app.exportProfileCSV());
+
+  const actions = h('div', { class: 'col', style: 'gap:6px' }, [
+    buttonRow([copyBtn, csvBtn]),
+    hint(t('profile.exportHint')),
+  ]);
+
+  const side = h('div', { class: 'chart-side' }, [secSample.root, statsGrid, readout, actions]);
   el.appendChild(h('div', { class: 'chart-wrap' }, [box, side]));
 
   chart.onHover = (hv: ChartHover | null) => {
-    readout.textContent = hv
+    readoutMain.textContent = hv
       ? t('profile.hoverFmt', { d: fmtNum(hv.distance), v: fmtNum(hv.value), u: unitOf(app) })
       : t('profile.hoverReadout');
+    readoutXyz.textContent = hv
+      ? `${fmtNum(hv.x)}, ${fmtNum(hv.y)}, ${fmtNum(hv.z)}`
+      : '';
   };
 
   let lastSig = '';
@@ -344,7 +407,17 @@ function buildProfilePage(app: App): DockPage {
   const sync = (): void => {
     const st = app.state;
     const res = st.profile;
-    const sig = res ? `${res.field}|${res.length}|${res.sampled}|${st.measure.field}` : 'none';
+    const has = !!res && res.sampled > 0;
+
+    samples.set(st.measure.bins);
+    method.set(st.measure.method);
+    radius.set(radiusTFromValue(app, st.measure.radius));
+    copyBtn.toggleAttribute('disabled', !has);
+    csvBtn.toggleAttribute('disabled', !has);
+
+    const sig = res
+      ? `${res.field}|${res.length}|${res.sampled}|${res.method}|${res.radius}|${res.t.length}|${st.measure.field}`
+      : 'none';
     if (sig !== lastSig) {
       lastSig = sig;
       const label = res?.field ? (res.field === 'z' ? t('field.elevation') : res.field) : '';
@@ -383,12 +456,30 @@ function buildProfilePage(app: App): DockPage {
   return { el, sync };
 }
 
+function clampSamples(v: number): number {
+  return Math.max(2, Math.min(2000, Math.round(Number.isFinite(v) ? v : 120)));
+}
+
 function unitOf(app: App): string {
   const st = app.state;
   const field = st.profile?.field || st.measure.field;
   if (!field) return '';
   const u = st.source?.units.get(field);
   return u ? ` ${u}` : '';
+}
+
+function clampNum(v: number, lo: number, hi: number): number {
+  return v < lo ? lo : v > hi ? hi : v;
+}
+
+function radiusFromT(app: App, t: number): number {
+  const diag = app.state.view?.diagonal ?? 1;
+  return (t / 100) * diag * 0.05;
+}
+
+function radiusTFromValue(app: App, v: number): number {
+  const diag = app.state.view?.diagonal ?? 1;
+  return clampNum((v / (diag * 0.05)) * 100, 0, 100);
 }
 
 /* ══════════════════════════════════════════════════════════════

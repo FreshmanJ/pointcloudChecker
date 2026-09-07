@@ -324,7 +324,7 @@ const zh: Dict = {
   'profile.field': '分析量',
   'profile.radius': '管道半径',
   'profile.radiusAuto': '自动',
-  'profile.bins': '分段数',
+  'profile.samples': '采样点数',
   'profile.smooth': '滑动平均窗口',
   'profile.smoothOff': '关闭',
   'profile.stats': '沿程统计',
@@ -333,7 +333,7 @@ const zh: Dict = {
   'profile.history': '历史记录',
   'profile.noHistory': '还没有测量记录。',
   'profile.length': '线段长度',
-  'profile.sampled': '采样点数',
+  'profile.sampled': '管内点数',
   'profile.min': '最小值',
   'profile.max': '最大值',
   'profile.mean': '平均值',
@@ -347,6 +347,17 @@ const zh: Dict = {
   'profile.seg': '段',
   'profile.perUnit': '单位',
   'profile.pointsUnit': '点',
+
+  /* dock chart side panel */
+  'profile.sampleTitle': '采样设置',
+  'profile.method': '采样方式',
+  'profile.methodIdw': '距离加权',
+  'profile.methodMean': '邻域均值',
+  'profile.methodNearest': '最近点',
+  'profile.methodHint': '采样点沿线段均匀布设；距离加权与邻域均值把邻域内的点合成一个值，「最近点」直接取离采样点最近的实测点，空缺处不插值。',
+  'profile.copyData': '复制数据',
+  'profile.exportTable': '导出 CSV',
+  'profile.exportHint': '每行包含采样点的沿线距离、坐标 (x, y, z)、取值、标准差与参与点数。',
 
   'export.image': '导出图片',
   'export.imageSub': '配置标题、色卡与分辨率，拖拽预览中的标注可调整位置',
@@ -594,6 +605,10 @@ const zh: Dict = {
   'toast.noProfile': '还没有剖面结果',
   'toast.noProfileDesc': '先在「剖面」中选取起点与终点。',
   'toast.profileExported': '剖面数据已导出',
+  'toast.profileCopied': '剖面数据已复制',
+  'toast.profileCopiedDesc': '共 {n} 个采样点，可直接粘贴到表格里。',
+  'toast.profileCopyFailed': '复制失败',
+  'toast.profileCopyFailedDesc': '浏览器拒绝了剪贴板访问，请改用「导出 CSV」。',
 
   /* io loading labels */
   'io.sniff': '按内容识别为 {f}',
@@ -983,7 +998,7 @@ const en: Dict = {
   'profile.field': 'Quantity',
   'profile.radius': 'Tube radius',
   'profile.radiusAuto': 'Auto',
-  'profile.bins': 'Segments',
+  'profile.samples': 'Sample count',
   'profile.smooth': 'Moving-average window',
   'profile.smoothOff': 'Off',
   'profile.stats': 'Along-section stats',
@@ -992,7 +1007,7 @@ const en: Dict = {
   'profile.history': 'History',
   'profile.noHistory': 'No measurements yet.',
   'profile.length': 'Segment length',
-  'profile.sampled': 'Sampled points',
+  'profile.sampled': 'Points in tube',
   'profile.min': 'Min',
   'profile.max': 'Max',
   'profile.mean': 'Mean',
@@ -1006,6 +1021,17 @@ const en: Dict = {
   'profile.seg': 'steps',
   'profile.perUnit': 'unit',
   'profile.pointsUnit': 'pts',
+
+  /* dock chart side panel */
+  'profile.sampleTitle': 'Sampling',
+  'profile.method': 'Method',
+  'profile.methodIdw': 'Distance-weighted',
+  'profile.methodMean': 'Neighbourhood mean',
+  'profile.methodNearest': 'Nearest point',
+  'profile.methodHint': 'Samples are laid out evenly along the line. Distance-weighted and neighbourhood mean blend every point within the tube radius; “Nearest point” uses the closest real measurement and leaves voids unfilled.',
+  'profile.copyData': 'Copy data',
+  'profile.exportTable': 'Export CSV',
+  'profile.exportHint': 'Each row carries distance along the line, coordinates (x, y, z), the value, its std-dev and how many points contributed.',
 
   'export.image': 'Image export',
   'export.imageSub': 'Set title, colour bar and resolution; drag annotations in the preview to reposition',
@@ -1253,6 +1279,10 @@ const en: Dict = {
   'toast.noProfile': 'No section result yet',
   'toast.noProfileDesc': 'Pick start and end points in “Section” first.',
   'toast.profileExported': 'Section data exported',
+  'toast.profileCopied': 'Section data copied',
+  'toast.profileCopiedDesc': '{n} sample rows — paste straight into a spreadsheet.',
+  'toast.profileCopyFailed': 'Copy failed',
+  'toast.profileCopyFailedDesc': 'The browser blocked clipboard access; use “Export CSV” instead.',
 
   /* io loading labels */
   'io.sniff': 'Detected format {f} by content',

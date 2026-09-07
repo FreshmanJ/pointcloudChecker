@@ -15,7 +15,7 @@ import {
 } from './core/colormap';
 import { downsampleIndices, type DownsampleOptions } from './core/downsample';
 import { applyFilters, createRule, type FilterLogic, type FilterRule } from './core/filters';
-import { sampleProfile } from './core/profile';
+import { sampleProfile, type ProfileMethod } from './core/profile';
 import { createDemoCloud } from './core/demo';
 import { sanitizeCloud, validateCloud } from './core/validate';
 import {
@@ -30,7 +30,7 @@ import type { ColumnSelection } from './io/common';
 import { askColumnSelection } from './ui/columnDialog';
 import { openImageExportDialog } from './ui/exportDialog';
 import {
-  downloadText, profileCSV, serializePreset,
+  downloadText, profileCSV, serializePreset, copyText,
   viewToCSV, viewToPCD, viewToPLY,
 } from './io/export';
 import { Viewer, type PickResult } from './render/Viewer';
@@ -1252,7 +1252,12 @@ export class App {
     if (this.state.measure.a && this.state.measure.b) this.runProfile(true);
   }
 
-  setMeasureOption(patch: { radius?: number; bins?: number; smooth?: number }): void {
+  setMeasureOption(patch: {
+    radius?: number;
+    bins?: number;
+    smooth?: number;
+    method?: ProfileMethod;
+  }): void {
     Object.assign(this.state.measure, patch);
     this.store.emit('measure');
     if (this.state.measure.a && this.state.measure.b) {
@@ -1298,6 +1303,7 @@ export class App {
       smooth: m.smooth,
       field,
       maxRaw: 6000,
+      method: m.method,
     });
     st.profile = res;
     if (record && res && res.sampled > 0) {
@@ -1368,16 +1374,40 @@ export class App {
     toast('ok', t('toast.cloudExported'), `${name}.${format}`);
   }
 
+  /** The exported/copied table text for the current section. */
+  private profileTable(): string | null {
+    const res = this.state.profile;
+    if (!res) return null;
+    const src = this.state.source;
+    const unit = res.field && src?.units.get(res.field) ? src.units.get(res.field)! : '';
+    return profileCSV(res, unit);
+  }
+
   exportProfileCSV(): void {
     const res = this.state.profile;
-    if (!res) {
+    const text = this.profileTable();
+    if (!res || text === null) {
       toast('warn', t('toast.noProfile'), t('toast.noProfileDesc'));
       return;
     }
-    const src = this.state.source;
-    const unit = res.field && src?.units.get(res.field) ? src.units.get(res.field)! : '';
-    downloadText(profileCSV(res, unit), `${this.baseName()}_profile_${res.field || 'z'}.csv`, 'text/csv;charset=utf-8');
+    downloadText(text, `${this.baseName()}_profile_${res.field || 'z'}.csv`, 'text/csv;charset=utf-8');
     toast('ok', t('toast.profileExported'));
+  }
+
+  /** Put the sampled curve table (distance + xyz + value) on the clipboard. */
+  async copyProfileData(): Promise<void> {
+    const text = this.profileTable();
+    if (text === null) {
+      toast('warn', t('toast.noProfile'), t('toast.noProfileDesc'));
+      return;
+    }
+    const rows = this.state.profile!.t.length;
+    const ok = await copyText(text);
+    if (ok) {
+      toast('ok', t('toast.profileCopied'), t('toast.profileCopiedDesc', { n: rows }));
+    } else {
+      toast('warn', t('toast.profileCopyFailed'), t('toast.profileCopyFailedDesc'));
+    }
   }
 
   exportPreset(): void {

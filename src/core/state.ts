@@ -8,7 +8,7 @@ import type { ValidationResult } from './validate';
 import type { DownsampleOptions } from './downsample';
 import { DOWNSAMPLE_DEFAULTS } from './downsample';
 import type { FilterLogic, FilterRule } from './filters';
-import type { ProfileResult } from './profile';
+import type { ProfileMethod, ProfileResult } from './profile';
 import { PROFILE_DEFAULTS } from './profile';
 import type { ColorMode, GridPlane, PointShape, SizeMode } from '../render/Viewer';
 
@@ -67,8 +67,11 @@ export interface MeasureState {
   bLabel: string;
   field: string;
   radius: number;
+  /** Sample points laid out along the section (see `ProfileOptions.bins`). */
   bins: number;
   smooth: number;
+  /** How each sample point is reduced — see `ProfileMethod`. */
+  method: ProfileMethod;
   history: MeasureRecord[];
   activeId: string | null;
 }
@@ -157,7 +160,8 @@ export function initialState(): AppState {
       field: '',
       radius: 0,
       bins: PROFILE_DEFAULTS.bins,
-      smooth: 0,
+      smooth: PROFILE_DEFAULTS.smooth,
+      method: PROFILE_DEFAULTS.method,
       history: [],
       activeId: null,
     },

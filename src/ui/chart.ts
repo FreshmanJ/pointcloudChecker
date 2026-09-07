@@ -46,6 +46,10 @@ export interface ChartHover {
   distance: number;
   value: number;
   bin: number;
+  /** Representative coordinates of the hovered sample (NaN when unavailable). */
+  x: number;
+  y: number;
+  z: number;
 }
 
 export class ProfileChart {
@@ -105,7 +109,14 @@ export class ProfileChart {
     const plotW = rect.width - this.pad.l - this.pad.r;
     const t = Math.max(0, Math.min(1, (x - this.pad.l) / plotW));
     const bin = Math.min(this.res.t.length - 1, Math.max(0, Math.round(t * (this.res.t.length - 1))));
-    this.hover = { distance: this.res.t[bin], value: this.res.v[bin], bin };
+    this.hover = {
+      distance: this.res.t[bin],
+      value: this.res.v[bin],
+      bin,
+      x: this.res.x?.[bin] ?? NaN,
+      y: this.res.y?.[bin] ?? NaN,
+      z: this.res.z?.[bin] ?? NaN,
+    };
     this.onHover?.(this.hover);
     this.draw();
   }
@@ -131,9 +142,7 @@ export class ProfileChart {
     }
 
     const res = this.res;
-    const x0 = this.pad.l;
     const y0 = this.pad.t;
-    const pw = Math.max(10, w - this.pad.l - this.pad.r);
     const ph = Math.max(10, h - this.pad.t - this.pad.b);
 
     // value domain
@@ -152,6 +161,18 @@ export class ProfileChart {
     const padV = (vmax - vmin) * 0.08;
     vmin -= padV;
     vmax += padV;
+
+    // Reserve left margin for the vertical Y-axis title + tick labels.
+    ctx.font = '10px var(--font-mono)';
+    let yLabelW = 0;
+    for (let i = 0; i <= 4; i++) {
+      const v = vmin + ((vmax - vmin) * i) / 4;
+      yLabelW = Math.max(yLabelW, ctx.measureText(fmtNum(v)).width);
+    }
+    // 14px margin for the rotated title + 10px font + 6px gap + label + 7px gap to axis.
+    this.pad.l = Math.max(78, Math.ceil(yLabelW + 44));
+    const x0 = this.pad.l;
+    const pw = Math.max(10, w - this.pad.l - this.pad.r);
 
     const sx = (t: number) => x0 + (res.length ? (t / res.length) * pw : 0);
     const sy = (v: number) => y0 + ph - ((v - vmin) / (vmax - vmin)) * ph;
@@ -200,19 +221,24 @@ export class ProfileChart {
       }
     }
 
-    // ±1σ band
+    // ±1σ band (skips samples that have no dispersion estimate)
+    let bandOpen = false;
     ctx.beginPath();
     for (let i = 0; i < res.v.length; i++) {
+      if (!Number.isFinite(res.v[i]) || !Number.isFinite(res.sd[i])) continue;
       const px = sx(res.t[i]);
       const py = sy(res.v[i] + res.sd[i]);
-      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      if (!bandOpen) { ctx.moveTo(px, py); bandOpen = true; } else ctx.lineTo(px, py);
     }
     for (let i = res.v.length - 1; i >= 0; i--) {
+      if (!Number.isFinite(res.v[i]) || !Number.isFinite(res.sd[i])) continue;
       ctx.lineTo(sx(res.t[i]), sy(res.v[i] - res.sd[i]));
     }
-    ctx.closePath();
-    ctx.fillStyle = theme.band;
-    ctx.fill();
+    if (bandOpen) {
+      ctx.closePath();
+      ctx.fillStyle = theme.band;
+      ctx.fill();
+    }
 
     // mean line
     ctx.beginPath();
@@ -227,6 +253,20 @@ export class ProfileChart {
     ctx.lineWidth = 1.8;
     ctx.lineJoin = 'round';
     ctx.stroke();
+
+    // sample markers — only drawn when the sample count stays readable
+    if (res.v.length <= 60) {
+      ctx.beginPath();
+      ctx.fillStyle = theme.line;
+      for (let i = 0; i < res.v.length; i++) {
+        if (!Number.isFinite(res.v[i])) continue;
+        const px = sx(res.t[i]);
+        const py = sy(res.v[i]);
+        ctx.moveTo(px + 2.2, py);
+        ctx.arc(px, py, 2.2, 0, Math.PI * 2);
+      }
+      ctx.fill();
+    }
 
     // extremes
     const st = res.stats;
@@ -278,9 +318,16 @@ export class ProfileChart {
     // axis captions
     ctx.fillStyle = theme.text;
     ctx.font = '10px var(--font-ui)';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(`${this.fieldLabel}${this.unit ? ` (${this.unit})` : ''}`, 6, 4);
+    // Y-axis title: vertical on the far left, centred on the plot height.
+    const yTitle = `${this.fieldLabel}${this.unit ? ` (${this.unit})` : ''}`;
+    ctx.save();
+    ctx.translate(14, y0 + ph / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(yTitle, 0, 0);
+    ctx.restore();
+    // X-axis title: bottom-right.
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
     ctx.fillText(t('profile.axisDist'), w - 6, h - 4);

@@ -110,20 +110,20 @@
 /* ══════════ WORKSPACE ══════════ */
 .workspace {
   display: grid;
-  grid-template-columns: var(--panel-l-w) 1fr var(--panel-r-w);
+  grid-template-columns: minmax(var(--panel-l-w), max-content) minmax(0, 1fr) minmax(var(--panel-r-w), max-content);
   min-height: 0;
   overflow: hidden;
   /* Positioning context for the collapsed-panel expand tabs. */
   position: relative;
 }
 .workspace.no-left {
-  grid-template-columns: 0 1fr var(--panel-r-w);
+  grid-template-columns: 0 minmax(0, 1fr) minmax(var(--panel-r-w), max-content);
 }
 .workspace.no-right {
-  grid-template-columns: var(--panel-l-w) 1fr 0;
+  grid-template-columns: minmax(var(--panel-l-w), max-content) minmax(0, 1fr) 0;
 }
 .workspace.no-left.no-right {
-  grid-template-columns: 0 1fr 0;
+  grid-template-columns: 0 minmax(0, 1fr) 0;
 }
 
 /* ══════════ SIDE PANELS ══════════ */
@@ -150,7 +150,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  height: 34px;
+  height: var(--panel-head-h);
   padding: 0 6px 0 8px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-panel-2);
@@ -161,11 +161,17 @@
 }
 .panel-head .panel-tabs {
   flex: 1;
-  min-width: 0;
+  min-width: max-content;
 }
 .panel-body {
-  flex: 1;
-  min-height: 0;
+  position: absolute;
+  top: var(--panel-head-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-width: 0;
 }
 
 .panel-resizer {
@@ -800,7 +806,7 @@ table.data tr.is-active td {
 }
 .chart-wrap {
   display: grid;
-  grid-template-columns: 1fr 244px;
+  grid-template-columns: 1fr 320px;
   gap: 12px;
   height: 100%;
   min-height: 0;
@@ -825,6 +831,34 @@ table.data tr.is-active td {
   min-height: 0;
   overflow: auto;
   padding-right: 2px;
+}
+/* The sampling block borrows the panel section style; trim its page padding so
+   it lines up with the stat cards below it. */
+.chart-side > .section {
+  margin: 0 -4px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-panel-2);
+  overflow: hidden;
+}
+.chart-side > .section .section-body {
+  padding: 10px;
+  gap: 9px;
+}
+.chart-readout {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  min-height: 32px;
+}
+.chart-readout > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chart-stats {
