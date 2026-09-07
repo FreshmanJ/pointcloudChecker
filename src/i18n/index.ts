@@ -24,6 +24,7 @@ const zh: Dict = {
   'app.title': 'PointCloud Inspector — 点云检查与分析',
   'app.lang': '语言',
   'boot.failed': '初始化失败，请查看控制台输出。',
+  'boot.loading': '正在初始化渲染器…',
 
   /* top bar */
   'topbar.open': '打开文件',
@@ -694,6 +695,7 @@ const en: Dict = {
   'app.title': 'PointCloud Inspector — Point Cloud Inspection & Analysis',
   'app.lang': 'Language',
   'boot.failed': 'Initialisation failed — see the console output.',
+  'boot.loading': 'Initialising renderer…',
 
   'topbar.open': 'Open File',
   'topbar.demo': 'Sample Data',
