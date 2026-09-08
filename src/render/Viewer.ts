@@ -94,13 +94,14 @@ const FRAG = /* glsl */ `
   }
 `;
 
-/** Unit axes used by the plane-rotation buttons. */
+/** World-space axes used by the logical coordinate-plane rotation buttons. */
 const PLANE_AXES = {
-  xy: new THREE.Vector3(0, 0, 1),
+  xy: new THREE.Vector3(0, 1, 0),
   yz: new THREE.Vector3(1, 0, 0),
-  xz: new THREE.Vector3(0, 1, 0),
+  xz: new THREE.Vector3(0, 0, 1),
 } as const;
 
+/** Source Z is mapped to the Three.js world Y axis, which is vertical. */
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 const AXIS_X = new THREE.Vector3(1, 0, 0);
 const AXIS_Y = new THREE.Vector3(0, 1, 0);
@@ -181,6 +182,11 @@ export class Viewer {
   readonly camera: THREE.PerspectiveCamera;
   readonly controls: TrackballControls;
   readonly canvas: HTMLCanvasElement;
+  /**
+   * Keeps source coordinates intact while presenting XY as the ground plane and
+   * Z as elevation: source (x, y, z) -> world (x, z, y).
+   */
+  private dataGroup = new THREE.Group();
 
   /** Auto-rotation (TrackballControls has no `autoRotate` of its own). */
   private turntable = false;
@@ -243,6 +249,14 @@ export class Viewer {
     this.renderer.setClearColor(0x06080b, 1);
 
     this.scene = new THREE.Scene();
+    this.dataGroup.matrix.set(
+      1, 0, 0, 0,
+      0, 0, 1, 0,
+      0, 1, 0, 0,
+      0, 0, 0, 1
+    );
+    this.dataGroup.matrixAutoUpdate = false;
+    this.scene.add(this.dataGroup);
     this.camera = new THREE.PerspectiveCamera(50, 1, 0.001, 100000);
     this.camera.position.set(3, 2.4, 3.4);
 
@@ -312,8 +326,8 @@ export class Viewer {
       this.markerGroup.add(m);
     }
     this.markerGroup.renderOrder = 10;
-    this.scene.add(this.markerGroup);
-    this.scene.add(this.measureGroup);
+    this.dataGroup.add(this.markerGroup);
+    this.dataGroup.add(this.measureGroup);
     this.setMarkerOutline('#06080b');
 
     this.resize();
@@ -415,7 +429,7 @@ export class Viewer {
     this.geometry = geo;
     this.points = new THREE.Points(geo, this.material);
     this.points.frustumCulled = false;
-    this.scene.add(this.points);
+    this.dataGroup.add(this.points);
     this.invalidate();
   }
 
@@ -437,7 +451,7 @@ export class Viewer {
 
   private clearView(): void {
     if (this.points) {
-      this.scene.remove(this.points);
+      this.dataGroup.remove(this.points);
       this.points = null;
     }
     this.geometry?.dispose();
@@ -520,7 +534,7 @@ export class Viewer {
       (g.material as THREE.Material).opacity = 0.7;
       g.renderOrder = -1;
       this.grid = g;
-      this.scene.add(g);
+      this.dataGroup.add(g);
     }
 
     if (opts.box) {
@@ -532,7 +546,7 @@ export class Viewer {
       (helper.material as THREE.Material).transparent = true;
       (helper.material as THREE.Material).opacity = 0.75;
       this.boxHelper = helper;
-      this.scene.add(helper);
+      this.dataGroup.add(helper);
     }
 
     if (opts.axes) {
@@ -541,7 +555,7 @@ export class Viewer {
       (a.material as THREE.Material).depthTest = false;
       a.renderOrder = 5;
       this.axes = a;
-      this.scene.add(a);
+      this.dataGroup.add(a);
     }
     this.invalidate();
   }
@@ -559,7 +573,7 @@ export class Viewer {
     const dist = (radius / Math.tan((this.camera.fov * Math.PI) / 360)) * 1.5;
 
     const dir = new THREE.Vector3(0.62, 0.46, 0.72).normalize();
-    const target = new THREE.Vector3(cx, cy, cz);
+    const target = this.toWorld(cx, cy, cz);
     const pos = target.clone().addScaledVector(dir, dist);
 
     // The framing direction is a fixed iso vector, so it only reads correctly
@@ -598,13 +612,13 @@ export class Viewer {
   setViewAxis(axis: 'x' | 'y' | 'z' | '-x' | '-y' | '-z' | 'iso'): void {
     if (!this.view) return;
     const c = this.view.center;
-    const target = new THREE.Vector3(c[0], c[1], c[2]);
+    const target = this.toWorld(c[0], c[1], c[2]);
     const r = this.view.diagonal / 2;
     const d = (r / Math.tan((this.camera.fov * Math.PI) / 360)) * 1.5;
     const dirs: Record<string, [number, number, number]> = {
       x: [1, 0, 0], '-x': [-1, 0, 0],
-      y: [0, 1, 0], '-y': [0, -1, 0],
-      z: [0, 0, 1], '-z': [0, 0, -1],
+      y: [0, 0, 1], '-y': [0, 0, -1],
+      z: [0, 1, 0], '-z': [0, -1, 0],
       iso: [0.62, 0.46, 0.72],
     };
     const d0 = dirs[axis];
@@ -644,7 +658,8 @@ export class Viewer {
   /**
    * Rotate the camera around the target **within** the given coordinate plane.
    *
-   *   xy → about the Z axis   ·   yz → about the X axis   ·   xz → about the Y axis
+   *   xy → about the Z axis   ·   yz → about the X axis   ·   xz → about the Y axis.
+   *   The source axes are remapped so source Z remains the visual vertical.
    *
    * The eye offset and the up vector are rotated by the same quaternion — the
    * "camera on a ring" motion, identical to what a mouse drag produces. Because
@@ -668,7 +683,7 @@ export class Viewer {
   }
 
   /**
-   * Auto-rotation about the world Y axis. TrackballControls ships no
+   * Auto-rotation about world Y (source Z, the visual vertical). TrackballControls ships no
    * `autoRotate`, so the turntable is driven from the render loop instead.
    * Rotating `up` by the same quaternion keeps whatever roll the user has
    * dialled in, so the picture spins rather than tumbling.
@@ -699,8 +714,8 @@ export class Viewer {
       -(py / rect.height) * 2 + 1
     );
     this.raycaster.setFromCamera(ndc, this.camera);
-    const o = this.raycaster.ray.origin;
-    const d = this.raycaster.ray.direction;
+    const o = this.toData(this.raycaster.ray.origin);
+    const d = this.toData(this.raycaster.ray.direction);
 
     const radius = this.pickRadius(radiusScale);
     const hit = this.view.index.raycast(
@@ -772,6 +787,8 @@ export class Viewer {
       transparent: true,
       opacity: 0.95,
       depthTest: false,
+      // The display-coordinate axis swap reverses winding for this mesh.
+      side: THREE.DoubleSide,
     });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(va).add(vb).multiplyScalar(0.5);
@@ -876,6 +893,16 @@ export class Viewer {
 
   enableControls(on: boolean): void {
     this.controls.enabled = on;
+  }
+
+  /** Map source XYZ coordinates to the Three.js world coordinate convention. */
+  private toWorld(x: number, y: number, z: number): THREE.Vector3 {
+    return new THREE.Vector3(x, z, y);
+  }
+
+  /** The XYZ/world mapping is its own inverse, including direction vectors. */
+  private toData(v: THREE.Vector3): THREE.Vector3 {
+    return new THREE.Vector3(v.x, v.z, v.y);
   }
 }
 

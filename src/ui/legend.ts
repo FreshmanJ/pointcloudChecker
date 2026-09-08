@@ -194,8 +194,9 @@ export class HoverCard {
 
 const AXES_DEF = [
   { key: 'X', dir: [1, 0, 0], color: '#f4575f' },
-  { key: 'Y', dir: [0, 1, 0], color: '#33cf85' },
-  { key: 'Z', dir: [0, 0, 1], color: '#4d9bff' },
+  // Source coordinates render as world XZY: Z is vertical, X/Y are horizontal.
+  { key: 'Y', dir: [0, 0, 1], color: '#33cf85' },
+  { key: 'Z', dir: [0, 1, 0], color: '#4d9bff' },
 ] as const;
 
 export class AxisGizmo {

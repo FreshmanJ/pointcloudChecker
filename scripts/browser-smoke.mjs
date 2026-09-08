@@ -408,12 +408,14 @@ async function main() {
       const m = cam.matrixWorldInverse.elements;
       const pj = cam.projectionMatrix.elements;
       const rect = document.getElementById('gl').getBoundingClientRect();
-      const out = [];
-      for (let k = 0; k < v.count && out.length < 12; k += Math.max(1, Math.floor(v.count / 400))) {
-        const p = v.positionAt(k);
-        const cx = m[0]*p[0] + m[4]*p[1] + m[8]*p[2]  + m[12];
-        const cy = m[1]*p[0] + m[5]*p[1] + m[9]*p[2]  + m[13];
-        const cz = m[2]*p[0] + m[6]*p[1] + m[10]*p[2] + m[14];
+       const out = [];
+       for (let k = 0; k < v.count && out.length < 12; k += Math.max(1, Math.floor(v.count / 400))) {
+         const p = v.positionAt(k);
+         // Viewer presents source XYZ as world XZY, keeping source Z vertical.
+         const wx = p[0], wy = p[2], wz = p[1];
+         const cx = m[0]*wx + m[4]*wy + m[8]*wz  + m[12];
+         const cy = m[1]*wx + m[5]*wy + m[9]*wz  + m[13];
+         const cz = m[2]*wx + m[6]*wy + m[10]*wz + m[14];
         if (cz > -1e-4) continue;               // behind / on the camera plane
         const w = -cz;
         const ndcX = (pj[0]*cx + pj[8]*cz + pj[12]) / w;
