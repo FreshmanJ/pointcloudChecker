@@ -13,9 +13,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc -p worker/tsconfig.json",
     "cf:types": "wrangler types",
-    "cf:deploy": "npm run build && wrangler deploy",
-    "smoke": "esbuild scripts/smoke.ts --bundle --platform=node --format=esm --target=node20 --outfile=.tmp/smoke.mjs --log-level=warning && node .tmp/smoke.mjs",
-    "smoke:browser": "node scripts/browser-smoke.mjs"
+    "cf:deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "laz-perf": "^0.0.7",

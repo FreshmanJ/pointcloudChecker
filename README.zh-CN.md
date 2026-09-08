@@ -49,7 +49,7 @@ PointCloud Inspector 是一个用于加载、校验、可视化和分析三维�
 
 基于 Three.js 自定义的 `ShaderMaterial`，支持屏幕空间 / 世界空间点尺寸、方块 / 圆形点、透明度、距离雾效以及颜色增益。视口使用 `TrackballControls`，可以自由翻滚跨越两极 —— 对于上方向不明确的点云尤为重要。
 
-上面的总览图展示了内置的 `demo_motor_winding`（电机绕组）示例数据，按高程着色，并显示了视口 HUD 信息卡、右侧文件信息面板和底部统计面板。
+上面的总览图展示了内置的变压器绕组点云。
 
 ### 灵活的上色方式
 
@@ -202,7 +202,7 @@ pointcloudChecker/
 │  │  ├─ legend.ts chart.ts controls.ts dom.ts
 │  └─ styles/              # 设计令牌 → 基础 → 组件 → 应用外壳
 ├─ docs/shots/             # README 截图，按语言分目录：en/（英文界面）、zh/（中文界面）
-├─ scripts/                # 构建 / CI 烟测与交互探测脚本
+├─ scripts/                # README 截图生成脚本
 └─ vite.config.ts
 ```
 
@@ -219,7 +219,6 @@ pointcloudChecker/
 | 3D / WebGL | Three.js（自定义 `ShaderMaterial`，`TrackballControls`） |
 | LAZ 解码 | `laz-perf` |
 | UI | 自研 DOM 组件 + CSS 变量（深色 / 浅色主题） |
-| 烟测 | 原生 Chrome DevTools Protocol，基于 Node `WebSocket` |
 
 ---
 
@@ -231,8 +230,6 @@ pointcloudChecker/
 | `npm run build` | 先类型检查（`tsc --noEmit`），再构建到 `dist/`。 |
 | `npm run preview` | 本地预览生产构建。 |
 | `npm run typecheck` | 仅运行 TypeScript 类型检查。 |
-| `npm run smoke` | 核心解析管道的 Node 烟测。 |
-| `npm run smoke:browser` | 无头浏览器交互烟测。 |
 | `node scripts/readme-shots.mjs [url] [lang]` | 按指定语言重新生成 README 截图到 `docs/shots/<lang>/`（需先 `npm run dev`；默认 `en`）。 |
 
 ---
@@ -276,3 +273,6 @@ LAS、LAZ、PCD、PLY、PTS、PTX、XYZ、CSV、TXT、OBJ 以及原始 BIN。未
 ---
 
 *PointCloud Inspector —— 完全在浏览器内检查、校验并理解你的点云。*
+### 内置示例数据
+
+内置示例为变压器绕组点云。点击「示例数据」即可载入。

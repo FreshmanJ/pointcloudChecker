@@ -47,7 +47,7 @@ PointCloud Inspector is a web application for loading, validating, visualising a
 
 A custom Three.js `ShaderMaterial` renders points with screen-space or world-space sizing, square/circle sprites, opacity, distance fog and a colour gain control. The viewport supports `TrackballControls` so the camera can tumble freely across both poles — essential when inspecting clouds where the up-axis is ambiguous.
 
-The overview shot above shows the bundled `demo_motor_winding` cloud loaded with elevation-based colouring, the on-viewport HUD card, the file-info panel on the right and the statistics dock at the bottom.
+The overview shot above shows the bundled transformer winding point cloud.
 
 ### Flexible colouring
 
@@ -200,7 +200,7 @@ pointcloudChecker/
 │  │  ├─ legend.ts chart.ts controls.ts dom.ts
 │  └─ styles/              # Design tokens → base → components → app shell
 ├─ docs/shots/             # README screenshots, per language: en/ (English UI), zh/ (Chinese UI)
-├─ scripts/                # Build/CI smoke tests & interaction probes
+├─ scripts/                # README screenshot generator
 └─ vite.config.ts
 ```
 
@@ -217,7 +217,6 @@ The architecture separates **`core`** (pure, DOM-free algorithms), **`io`** (par
 | 3D / WebGL | Three.js (custom `ShaderMaterial`, `TrackballControls`) |
 | LAZ decode | `laz-perf` |
 | UI | Hand-rolled DOM components + CSS variables (light/dark themes) |
-| Smoke tests | Raw Chrome DevTools Protocol over Node `WebSocket` |
 
 ---
 
@@ -229,8 +228,6 @@ The architecture separates **`core`** (pure, DOM-free algorithms), **`io`** (par
 | `npm run build` | Type-check (`tsc --noEmit`) then build to `dist/`. |
 | `npm run preview` | Serve the production build locally. |
 | `npm run typecheck` | Run TypeScript type checks without emitting. |
-| `npm run smoke` | Node smoke test of the core parsing pipeline. |
-| `npm run smoke:browser` | Headless browser interaction smoke test. |
 | `node scripts/readme-shots.mjs [url] [lang]` | Regenerate the README screenshots for the given language into `docs/shots/<lang>/` (requires `npm run dev`; defaults to `en`). |
 
 ---
@@ -274,3 +271,6 @@ You are free to use, study, modify and redistribute the software for any purpose
 ---
 
 *PointCloud Inspector — inspect, validate and understand your point clouds, entirely in the browser.*
+### Bundled sample
+
+The bundled sample is a transformer winding point cloud. Select **Sample Data** to load it.

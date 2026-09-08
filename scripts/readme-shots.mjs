@@ -190,9 +190,15 @@ async function main() {
     await sleep(300);
     await cdp.eval(`(function(){
       const v = window.__pci.state.view; const p = v.positions; const n = v.count;
-      const i = Math.floor(n * 0.30); const j = Math.floor(n * 0.72);
-      const a = [p[i*3], p[i*3+1], p[i*3+2]];
-      const b = [p[j*3], p[j*3+1], p[j*3+2]];
+      const bounds = v.bounds; const spans = [0, 1, 2].map(k => bounds.max[k] - bounds.min[k]);
+      const axis = spans.indexOf(Math.max(...spans));
+      let lo = 0, hi = 0;
+      for (let k = 1; k < n; k++) {
+        if (p[k*3+axis] < p[lo*3+axis]) lo = k;
+        if (p[k*3+axis] > p[hi*3+axis]) hi = k;
+      }
+      const a = [p[lo*3], p[lo*3+1], p[lo*3+2]];
+      const b = [p[hi*3], p[hi*3+1], p[hi*3+2]];
       window.__pci.pushEndpoint(a); window.__pci.pushEndpoint(b);
     })();`);
     await sleep(700);

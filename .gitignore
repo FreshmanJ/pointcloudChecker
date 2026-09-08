@@ -1,7 +1,9 @@
 node_modules/
 dist/
 .tmp/
+/.tmp-*
 .wrangler/
+/vite.config.ts.timestamp-*.mjs
 
 # Local editor / OS noise
 .DS_Store
@@ -11,4 +13,8 @@ Thumbs.db
 .idea/
 .workbuddy/
 dbg-*/
-shots/
+/shots/
+
+# Local diagnostic scripts; keep only the README screenshot generator in Git.
+scripts/*
+!scripts/readme-shots.mjs

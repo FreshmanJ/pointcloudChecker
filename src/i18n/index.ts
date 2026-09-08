@@ -69,7 +69,7 @@ const zh: Dict = {
   /* loading labels */
   'loading.parse': '解析 {name}…',
   'loading.validate': '校验与清理数据…',
-  'loading.demo': '生成示例点云…',
+  'loading.demo': '载入示例点云…',
   'loading.check': '校验数据…',
 
   /* status bar */
@@ -585,7 +585,7 @@ const zh: Dict = {
   'toast.loadedDesc': '{count} 点 · {size} · {sec}s',
   'toast.parseHint': '解析提示',
   'toast.demoLoaded': '已载入示例数据',
-  'toast.demoLoadedDesc': '合成电机绕组温度场 · 轴向 63% 处有局部过热点。试试「剖面测量」。',
+  'toast.demoLoadedDesc': '变压器绕组点云。',
   'toast.dsApplied': '降采样已应用',
   'toast.dsAppliedDesc': '当前显示 {n} 点。',
   'toast.dsReset': '已还原为原始点集',
@@ -701,9 +701,6 @@ const zh: Dict = {
   'io.warn.textCoordManual': '坐标列由用户指定：X=#{x} Y=#{y}{z}{note}',
   'col.delimSpace': '空格',
   'col.auto': '自动',
-  'demo.note': '合成示例：电机绕组 + 定子外壳的温度场',
-  'demo.composition': '绕组 {c} / 机壳 {s} / 端板与底座 {p}',
-  'demo.hotspot': '轴向 63% 处存在局部过热点',
 };
 
 const en: Dict = {
@@ -749,7 +746,7 @@ const en: Dict = {
 
   'loading.parse': 'Parsing {name}…',
   'loading.validate': 'Validating & cleaning data…',
-  'loading.demo': 'Generating sample point cloud…',
+  'loading.demo': 'Loading sample point cloud…',
   'loading.check': 'Checking data…',
 
   'status.state': 'Validation',
@@ -1259,7 +1256,7 @@ const en: Dict = {
   'toast.loadedDesc': '{count} pts · {size} · {sec}s',
   'toast.parseHint': 'Parse note',
   'toast.demoLoaded': 'Sample data loaded',
-  'toast.demoLoadedDesc': 'Synthetic motor-winding temperature field · localised hotspot at 63% of the axis. Try “Section Measure”.',
+  'toast.demoLoadedDesc': 'Transformer winding point cloud.',
   'toast.dsApplied': 'Downsample applied',
   'toast.dsAppliedDesc': 'Now showing {n} points.',
   'toast.dsReset': 'Restored to original set',
@@ -1375,9 +1372,6 @@ const en: Dict = {
   'io.warn.textCoordManual': 'Coordinate columns specified manually: X=#{x} Y=#{y}{z}{note}',
   'col.delimSpace': 'space',
   'col.auto': 'Auto',
-  'demo.note': 'Synthetic sample: temperature field of motor windings + stator housing',
-  'demo.composition': 'Windings {c} / Housing {s} / End-plates & base {p}',
-  'demo.hotspot': 'Localised hotspot at 63% of the axis',
 };
 
 /* ───────────── meta label translation ───────────── */

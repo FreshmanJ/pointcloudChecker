@@ -16,7 +16,7 @@ import {
 import { downsampleIndices, type DownsampleOptions } from './core/downsample';
 import { applyFilters, createRule, type FilterLogic, type FilterRule } from './core/filters';
 import { sampleProfile, type ProfileMethod } from './core/profile';
-import { createDemoCloud } from './core/demo';
+import { fetchDemoFile } from './core/demo';
 import { sanitizeCloud, validateCloud } from './core/validate';
 import {
   Store, effectiveRange,
@@ -880,32 +880,19 @@ export class App {
   }
 
   async loadDemo(): Promise<void> {
-    const st = this.state;
-    st.stage = 'loading';
+    if (this.state.stage === 'loading') return;
+    this.state.stage = 'loading';
     this.setLoading(true, t('loading.demo'), 0.15);
-    await yieldUI();
-    const t0 = performance.now();
-    const data = createDemoCloud();
-    this.setLoading(true, t('loading.check'), 0.8);
-    await yieldUI();
-
-    st.source = data;
-    st.fileInfo = {
-      name: 'demo_motor_winding',
-      size: data.count * 32,
-      format: 'DEMO',
-      parseMs: performance.now() - t0,
-    };
-    st.validation = validateCloud(data);
-    st.filters = { rules: [], logic: 'and' };
-    this.resetMeasureKeepField();
-    this.pickDefaultAttribute(data);
-    this.rebuild();
-    st.stage = 'ready';
-    this.frameAll();
-    this.store.emit('cloud', 'render', 'filters', 'meta');
-    this.setLoading(false);
-    toast('ok', t('toast.demoLoaded'), t('toast.demoLoadedDesc'));
+    try {
+      const file = await fetchDemoFile();
+      await this.loadFile(file);
+    } catch (err) {
+      this.state.stage = this.state.source ? 'ready' : 'empty';
+      this.store.emit('meta');
+      toast('err', t('toast.parseFail'), err instanceof Error ? err.message : String(err));
+    } finally {
+      this.setLoading(false);
+    }
   }
 
   closeCloud(): void {

@@ -383,6 +383,7 @@ export function guessColormapFor(name: string): string {
 /** Guess a display unit from an attribute name. */
 export function guessUnitFor(name: string): string {
   const n = name.toLowerCase();
+  if (/_k$/.test(n)) return 'K';
   if (/(temp|thermal|温度)/.test(n)) return '°C';
   if (/(intensity|反射强度)/.test(n)) return '';
   if (/(elev|height|alt|z$|高程|海拔|depth|水深|depth)/.test(n)) return 'm';
