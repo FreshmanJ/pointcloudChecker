@@ -95,6 +95,7 @@ export class Legend {
       this.footEl.appendChild(
         h('span', {
           class: 'mono dim',
+          style: 'width:100%',
           title: t('legend.effectivePoints'),
           text: `${opts.stats.valid.toLocaleString()} pts`,
         })
