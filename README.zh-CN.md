@@ -8,6 +8,8 @@
 ![WebGL](https://img.shields.io/badge/renderer-WebGL-990000?logo=webgl)
 ![100% 本地](https://img.shields.io/badge/%E7%A7%81%E7%A7%98-100%25%20%E6%9C%AC%E5%9C%B0-2ea043?logo=shield-check)
 
+[**在线体验 / Live Demo**](https://freshman.de5.net/pointcloudChecker/)
+
 > 一款完全运行在浏览器中的专业级点云检查与分析工具。
 
 PointCloud Inspector 是一个用于加载、校验、可视化和分析三维点云的 Web 应用。所有处理都在浏览器本地完成 —— **文件不会上传到任何服务器**。无需后端、无需登录、无需注册。

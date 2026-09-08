@@ -8,6 +8,8 @@
 ![WebGL](https://img.shields.io/badge/renderer-WebGL-990000?logo=webgl)
 ![100% Local](https://img.shields.io/badge/privacy-100%25%20local-2ea043?logo=shield-check)
 
+[**Live Demo / 在线体验**](https://freshman.de5.net/pointcloudChecker/)
+
 > A professional, fully client-side point cloud inspection & analysis tool that runs in your browser.
 
 PointCloud Inspector is a web application for loading, validating, visualising and analysing 3D point clouds. Everything runs locally in the browser — **your files never leave your machine**. No backend, no upload, no account.
