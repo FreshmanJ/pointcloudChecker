@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="light">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light" />
+<html lang="zh-CN" data-theme="light" data-page-node-id="VFOJSxSTxTgXAEtscgXGZ3">
+  <head data-page-node-id="g14Y2U8SZvFpiIN0Q93jb4">
+    <meta charset="UTF-8" data-page-node-id="bvk1tn5yIdKX7rcP96B1mF" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="tWmw64ILoA3WDLRXEYE0xK" />
+    <meta name="color-scheme" content="light" data-page-node-id="Ql0AuGCU9WzjjON9pqX24n" />
 
     <!-- No-flash theme: apply the saved colour scheme BEFORE first paint so the
          page never flashes light→dark (or dark→light) while the app boots. -->
@@ -16,6 +16,66 @@
           var m = document.querySelector('meta[name="color-scheme"]');
           if (m) m.setAttribute('content', t);
         } catch (e) { /* storage may be unavailable */ }
+      })();
+    </script>
+
+    <!-- Mobile / narrow-screen gate: the app is desktop-only, so block it on
+         phones (and any viewport narrower than the breakpoint) with a full-screen
+         notice asking the user to open it on a computer. This paints before
+         main.ts boots, and follows the saved light/dark theme. -->
+    <style id="mobileBlockStyle">
+      .mobile-block { position: fixed; inset: 0; z-index: 100000; display: grid; place-items: center;
+        padding: 24px; box-sizing: border-box; background: #070a0e; color: #e9eef6; text-align: center;
+        font-family: "Inter","SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+      .mobile-block-inner { max-width: 360px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+      .mobile-block-icon { width: 56px; height: 56px; opacity: 0.92; }
+      .mobile-block-title { font-size: 19px; font-weight: 700; color: #e9eef6; letter-spacing: -0.01em; }
+      .mobile-block-text { font-size: 14px; line-height: 1.65; color: #9aa6b6; }
+      html[data-theme="light"] .mobile-block { background: #eef2f7; color: #131820; }
+      html[data-theme="light"] .mobile-block-title { color: #131820; }
+      html[data-theme="light"] .mobile-block-text { color: #5a6473; }
+    </style>
+    <script>
+      (function () {
+        var NARROW_PX = 768; // 低于此宽度的视口视为窄屏（手机/竖屏小平板）
+        function vw() { return window.innerWidth || document.documentElement.clientWidth || 0; }
+        function isNarrow() { return vw() <= NARROW_PX; }
+        function show() {
+          if (document.getElementById('mobileBlock')) return;
+          var el = document.createElement('div');
+          el.className = 'mobile-block';
+          el.id = 'mobileBlock';
+          el.setAttribute('role', 'alertdialog');
+          el.setAttribute('aria-live', 'assertive');
+          el.setAttribute('aria-label', '请在电脑端访问');
+          el.innerHTML =
+            '<div class="mobile-block-inner">' +
+              '<svg class="mobile-block-icon" viewBox="0 0 24 24" aria-hidden="true">' +
+                '<path d="M12 2.5 21 7.2v9.6L12 21.5 3 16.8V7.2z" fill="none" stroke="#4ea1ff" stroke-width="1.4" stroke-linejoin="round"/>' +
+                '<circle cx="12" cy="12" r="2.1" fill="#ffb454"/>' +
+              '</svg>' +
+              '<div class="mobile-block-title">请在电脑端访问</div>' +
+              '<div class="mobile-block-text">本工具为桌面端设计，手机屏幕过小无法正常显示与操作。请使用电脑浏览器打开本页面。</div>' +
+            '</div>';
+          (document.body || document.documentElement).appendChild(el);
+          var app = document.getElementById('app');
+          if (app && app.style.display !== 'none') { app.style.display = 'none'; app.dataset.mbHidden = '1'; }
+          var bs = document.getElementById('bootSplash');
+          if (bs && bs.style.display !== 'none') { bs.style.display = 'none'; bs.dataset.mbHidden = '1'; }
+        }
+        function hide() {
+          var el = document.getElementById('mobileBlock');
+          if (el) el.remove();
+          var app = document.getElementById('app');
+          if (app && app.dataset.mbHidden) { app.style.display = ''; delete app.dataset.mbHidden; }
+          var bs = document.getElementById('bootSplash');
+          if (bs && bs.dataset.mbHidden) { bs.style.display = ''; delete bs.dataset.mbHidden; }
+        }
+        function apply() { if (isNarrow()) show(); else hide(); }
+        apply();
+        document.addEventListener('DOMContentLoaded', apply);
+        window.addEventListener('resize', apply);
+        window.addEventListener('orientationchange', apply);
       })();
     </script>
 
@@ -64,181 +124,181 @@
     </style>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230b1220'/%3E%3Cpath d='M12 3l9 5.2v7.6L12 21 3 15.8V8.2z' fill='none' stroke='%234ea1ff' stroke-width='1.4'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%23ffb454'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230b1220'/%3E%3Cpath d='M12 3l9 5.2v7.6L12 21 3 15.8V8.2z' fill='none' stroke='%234ea1ff' stroke-width='1.4'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%23ffb454'/%3E%3C/svg%3E" data-page-node-id="0CT5Jw6ZCgeeVgE3nAGr5k"
     />
     <title data-i18n="app.title">PointCloud Inspector — 点云检查与分析</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" data-page-node-id="e7WGBqvYfRwOEVbmb6qkCL" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin data-page-node-id="cMvDABZN7aKdtLUIQexH5B" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
+      rel="stylesheet" data-page-node-id="1UOZ6YkJZipD8MENcaHEtY"
     />
   </head>
-  <body>
-    <div id="app" class="app">
+  <body data-page-node-id="uAFrXBBCu9TTSr5Jx1v7Ev">
+    <div id="app" class="app" data-page-node-id="3ZrndmKLmmFgimixbrzQp2">
       <!-- ══════════ TOP BAR ══════════ -->
-      <header class="topbar">
-        <div class="brand">
-          <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 2.5 21 7.2v9.6L12 21.5 3 16.8V7.2z" />
-            <circle cx="12" cy="12" r="2.1" />
-            <circle cx="6.6" cy="7.6" r="1.35" />
-            <circle cx="17.4" cy="7.6" r="1.35" />
-            <circle cx="6.6" cy="16.4" r="1.35" />
-            <circle cx="17.4" cy="16.4" r="1.35" />
+      <header class="topbar" data-page-node-id="Vfe65vzoZYtibSW9qg5uk9">
+        <div class="brand" data-page-node-id="YTtf1HvXRQoyvKX5NHzhgB">
+          <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" data-page-node-id="aXLSjlYFQbRfdT7HIxI2DV">
+            <path d="M12 2.5 21 7.2v9.6L12 21.5 3 16.8V7.2z" data-page-node-id="lBtX4ChFDVhRCNzdExlCJk" />
+            <circle cx="12" cy="12" r="2.1" data-page-node-id="r5SHrf5qABSTkj9m0LQ8Xt" />
+            <circle cx="6.6" cy="7.6" r="1.35" data-page-node-id="LUKDsGEsoRArHTHsJ9qFAU" />
+            <circle cx="17.4" cy="7.6" r="1.35" data-page-node-id="DvMBX1Jscmaz3bFnmpB7wk" />
+            <circle cx="6.6" cy="16.4" r="1.35" data-page-node-id="wFRrwQQGSuVK827eCccndY" />
+            <circle cx="17.4" cy="16.4" r="1.35" data-page-node-id="Ih4yrqN5ey65pC4Kz0emwV" />
           </svg>
-          <div class="brand-text">
-            <span class="brand-name">PointCloud<span class="brand-thin">Inspector</span></span>
+          <div class="brand-text" data-page-node-id="5JBndhWgqW1FBwXrsSGbVk">
+            <span class="brand-name" data-page-node-id="ZLZJvGXfdJtd5HxNeQB7bX">PointCloud<span class="brand-thin" data-page-node-id="dQaiZQchUvuRE8hLFbx55i">Inspector</span></span>
           </div>
         </div>
 
-        <div class="topbar-divider"></div>
+        <div class="topbar-divider" data-page-node-id="8cuz1LAU0LcCBvJFg5GDrq"></div>
 
-        <div class="mode-switch" id="modeSwitch" role="tablist" aria-label="交互模式"></div>
+        <div class="mode-switch" id="modeSwitch" role="tablist" aria-label="交互模式" data-page-node-id="WbGoUqqOZhOtITuISBvZW6"></div>
 
-        <div class="topbar-spacer"></div>
+        <div class="topbar-spacer" data-page-node-id="vS3Ed3ZfbQQwuSoesBQbhT"></div>
 
-        <div class="topbar-actions" id="topbarActions"></div>
+        <div class="topbar-actions" id="topbarActions" data-page-node-id="clAwIcz2jpC01inZzBOeQK"></div>
       </header>
 
       <!-- ══════════ WORKSPACE ══════════ -->
-      <main class="workspace">
+      <main class="workspace" data-page-node-id="JGRbpkis7qF9ekReIxvewl">
         <!-- LEFT: Settings -->
-        <aside class="panel panel-left" id="panelLeft">
-          <div class="panel-head">
-            <div class="panel-tabs" id="leftTabs" role="tablist"></div>
-            <button class="icon-btn" id="leftCollapse" title="折叠面板 (Ctrl+1)">
-              <svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" /></svg>
+        <aside class="panel panel-left" id="panelLeft" data-page-node-id="kINUtvaIocDBjfLqr32ssF">
+          <div class="panel-head" data-page-node-id="DU8NEeyF7EZvFX9eS9GaJZ">
+            <div class="panel-tabs" id="leftTabs" role="tablist" data-page-node-id="WC9gD5rlHwMm5Z5AGYQRua"></div>
+            <button class="icon-btn" id="leftCollapse" title="折叠面板 (Ctrl+1)" data-page-node-id="Eas8QaJaK9gVqzMtyZY55u">
+              <svg viewBox="0 0 16 16" data-page-node-id="i81yfI1HHKd0JuEYH1u9ss"><path d="M10 3 5 8l5 5" data-page-node-id="AIXSBmIpTXa751MAB2PPw6" /></svg>
             </button>
           </div>
-          <div class="panel-body scroll-y" id="leftBody"></div>
-          <div class="panel-resizer" data-resize="left"></div>
+          <div class="panel-body scroll-y" id="leftBody" data-page-node-id="xfsm0e5A7hqvuSmkRerXpK"></div>
+          <div class="panel-resizer" data-resize="left" data-page-node-id="v0k1iM6FizZlYC5fSDMdoF"></div>
         </aside>
 
         <!-- Expand tab for left panel (shown by CSS only when collapsed) -->
-        <button class="expand-tab expand-tab-left" id="leftExpand" title="展开左侧面板 (Ctrl+1)">
-          <svg viewBox="0 0 16 16"><path d="M6 3 11 8l-5 5" /></svg>
+        <button class="expand-tab expand-tab-left" id="leftExpand" title="展开左侧面板 (Ctrl+1)" data-page-node-id="YgLyqDtEVhvqPvLBUh1ZPv">
+          <svg viewBox="0 0 16 16" data-page-node-id="G5TSNYCsdLobtrHciZJNKe"><path d="M6 3 11 8l-5 5" data-page-node-id="etCGzz5rBJ2bbuwrETdapv" /></svg>
         </button>
 
         <!-- CENTER: Viewport -->
-        <section class="viewport" id="viewport">
-          <canvas id="gl"></canvas>
+        <section class="viewport" id="viewport" data-page-node-id="1K8rLLaO2U20pHFaR2pJzH">
+          <canvas id="gl" data-page-node-id="587YYkeEH5yCkKMfjqtH8c"></canvas>
 
-          <div class="vp-layer vp-top-left" id="vpTopLeft"></div>
-          <div class="vp-layer vp-top-right" id="vpTopRight"></div>
-          <div class="vp-layer vp-bottom-left" id="vpBottomLeft"></div>
-          <div class="vp-layer vp-bottom-right" id="vpBottomRight"></div>
+          <div class="vp-layer vp-top-left" id="vpTopLeft" data-page-node-id="dny3E0ekgy3ygpJMAvFdYA"></div>
+          <div class="vp-layer vp-top-right" id="vpTopRight" data-page-node-id="yDOyjmYeHeWW0eG4PZpeA9"></div>
+          <div class="vp-layer vp-bottom-left" id="vpBottomLeft" data-page-node-id="XzUCJSuTeDYuTPFK54BGT9"></div>
+          <div class="vp-layer vp-bottom-right" id="vpBottomRight" data-page-node-id="ybjdP2zekNV86lnfSRWj5s"></div>
 
-          <div class="hover-card" id="hoverCard" hidden></div>
-          <div class="measure-hint" id="measureHint" hidden></div>
+          <div class="hover-card" id="hoverCard" hidden data-page-node-id="MqKENwNB5BZXznu47VSVBL"></div>
+          <div class="measure-hint" id="measureHint" hidden data-page-node-id="osq1raFmJTtLIWX23BVaA8"></div>
 
-          <div class="welcome" id="welcome">
-            <div class="welcome-inner">
-              <div class="welcome-icon">
-                <svg viewBox="0 0 64 64" aria-hidden="true">
-                  <path d="M32 6 56 19v26L32 58 8 45V19z" />
-                  <path d="M32 6v52M8 19l24 13 24-13M8 45l24-13 24 13" />
+          <div class="welcome" id="welcome" data-page-node-id="ZF9g49BFOvGb9etfaPHok3">
+            <div class="welcome-inner" data-page-node-id="rH5BURhsConDBVAH2b1iM0">
+              <div class="welcome-icon" data-page-node-id="Rzf9g41XikoTDhp4ss4bhc">
+                <svg viewBox="0 0 64 64" aria-hidden="true" data-page-node-id="dSOp3IxNIHRnNxOrrhJWkN">
+                  <path d="M32 6 56 19v26L32 58 8 45V19z" data-page-node-id="HSHN4ZrzzCpFOdZC5sg1eg" />
+                  <path d="M32 6v52M8 19l24 13 24-13M8 45l24-13 24 13" data-page-node-id="UQ1UlVNUsmgjgAZkJYfm5e" />
                 </svg>
               </div>
-              <h1 data-i18n="welcome.title">开始检查你的点云</h1>
-              <p data-i18n="welcome.body">
+              <h1 data-i18n="welcome.title" data-page-node-id="pqraQgQnwHVw8ndRA4MVgo">开始检查你的点云</h1>
+              <p data-i18n="welcome.body" data-page-node-id="f41dFIlB47XLkxcZyc1HYd">
                 拖入或选择一个点云文件，系统将自动完成格式识别、合规校验、降采样与渲染。
               </p>
-              <div class="welcome-formats" id="welcomeFormats"></div>
-              <div class="welcome-actions">
-                <button class="btn btn-primary btn-lg" id="welcomePick">
-                  <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" /></svg>
-                  <span data-i18n="welcome.pick">选择文件</span>
+              <div class="welcome-formats" id="welcomeFormats" data-page-node-id="Eolv09xr6LFM14GMRfeJYI"></div>
+              <div class="welcome-actions" data-page-node-id="QYGMFCq54GRofQNcxrjytH">
+                <button class="btn btn-primary btn-lg" id="welcomePick" data-page-node-id="0ZRPXxXFiLjJ9SEQYRsk06">
+                  <svg viewBox="0 0 16 16" data-page-node-id="F9wRsvQ50CuDJPZToiYsGB"><path d="M8 3v10M3 8h10" data-page-node-id="d7AjO50lXrMfUP3rFNvU6q" /></svg>
+                  <span data-i18n="welcome.pick" data-page-node-id="jmU1FxBP8Jq2F1keNkqglu">选择文件</span>
                 </button>
-                <button class="btn btn-ghost btn-lg" id="welcomeDemo" data-i18n="welcome.demo">载入示例数据</button>
+                <button class="btn btn-ghost btn-lg" id="welcomeDemo" data-i18n="welcome.demo" data-page-node-id="wbDC4rjJhBt8BZq7dX0USW">载入示例数据</button>
               </div>
-              <p class="welcome-note" data-i18n="welcome.note">
+              <p class="welcome-note" data-i18n="welcome.note" data-page-node-id="s38ghxYOgPP0umqWDtBBw7">
                 支持 LAS / LAZ / PCD / PLY / PTS / XYZ / CSV / TXT / OBJ · 全部在本地浏览器完成，数据不上传
               </p>
             </div>
           </div>
 
-          <div class="loading-veil" id="loadingVeil" hidden>
-            <div class="loading-card">
-              <div class="spinner"></div>
-              <div class="loading-label" id="loadingLabel">正在解析…</div>
-              <div class="progress"><div class="progress-bar" id="loadingBar"></div></div>
+          <div class="loading-veil" id="loadingVeil" hidden data-page-node-id="V18aonxo5GN4M3Rq91Ycgq">
+            <div class="loading-card" data-page-node-id="ghZHuTGV5i6JE2bBWCZCbC">
+              <div class="spinner" data-page-node-id="kxsTeQ2D7s21pn4iK7oC0U"></div>
+              <div class="loading-label" id="loadingLabel" data-page-node-id="EQESe6cjFfdD4UIGdILA9P">正在解析…</div>
+              <div class="progress" data-page-node-id="qqwPCHwrmcyDidWgB4mol9"><div class="progress-bar" id="loadingBar" data-page-node-id="5dkfh3se2JHd2PgBBV1lwt"></div></div>
             </div>
           </div>
         </section>
 
         <!-- RIGHT: Functions -->
-        <aside class="panel panel-right" id="panelRight">
-          <div class="panel-head">
-            <button class="icon-btn" id="rightCollapse" title="折叠面板 (Ctrl+2)">
-              <svg viewBox="0 0 16 16"><path d="M6 3l5 5-5 5" /></svg>
+        <aside class="panel panel-right" id="panelRight" data-page-node-id="xM0fIvpkB49cSK02guS9JU">
+          <div class="panel-head" data-page-node-id="FHUxDL5dHNEAxAAh8MyZ9F">
+            <button class="icon-btn" id="rightCollapse" title="折叠面板 (Ctrl+2)" data-page-node-id="7l4IReh6pZx7VS2EnvL22Q">
+              <svg viewBox="0 0 16 16" data-page-node-id="EVtwrHAm0EjbcDHZd6Me5s"><path d="M6 3l5 5-5 5" data-page-node-id="2Ge6DKcDjckeu8qEZlMyag" /></svg>
             </button>
-            <div class="panel-tabs" id="rightTabs" role="tablist"></div>
+            <div class="panel-tabs" id="rightTabs" role="tablist" data-page-node-id="mraSIRoGXyTdrxDJyxzN9r"></div>
           </div>
-          <div class="panel-body scroll-y" id="rightBody"></div>
-          <div class="panel-resizer" data-resize="right"></div>
+          <div class="panel-body scroll-y" id="rightBody" data-page-node-id="kc3YRIaRxrv7YzscJVIl6A"></div>
+          <div class="panel-resizer" data-resize="right" data-page-node-id="YL3sHdnP55ZvDtGDMZfVhr"></div>
         </aside>
 
         <!-- Expand tab for right panel (shown by CSS only when collapsed) -->
-        <button class="expand-tab expand-tab-right" id="rightExpand" title="展开右侧面板 (Ctrl+2)">
-          <svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" /></svg>
+        <button class="expand-tab expand-tab-right" id="rightExpand" title="展开右侧面板 (Ctrl+2)" data-page-node-id="MOPb5aeKr6sWVmBbmXFlAH">
+          <svg viewBox="0 0 16 16" data-page-node-id="0p5incBx3einfAlyTzbbUV"><path d="M10 3 5 8l5 5" data-page-node-id="SXu1AIwIVchSiq0cvOesci" /></svg>
         </button>
       </main>
 
       <!-- ══════════ BOTTOM DOCK ══════════ -->
-      <section class="dock" id="dock">
-        <div class="dock-head">
-          <div class="dock-tabs" id="dockTabs" role="tablist"></div>
-          <div class="dock-head-actions">
-            <button class="icon-btn" id="dockToggle" title="折叠数据面板 (Ctrl+3)">
-              <svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" /></svg>
+      <section class="dock" id="dock" data-page-node-id="qIr8oyqQ8aEzbi20zlWCyZ">
+        <div class="dock-head" data-page-node-id="nsSiplRcpUv0YQSQc9K9YQ">
+          <div class="dock-tabs" id="dockTabs" role="tablist" data-page-node-id="avBdkAzdf6bADmfbWdRHb9"></div>
+          <div class="dock-head-actions" data-page-node-id="EYnpEzkuIghSWIVSa8TSa6">
+            <button class="icon-btn" id="dockToggle" title="折叠数据面板 (Ctrl+3)" data-page-node-id="qgmhHCgYhslUh0VA5nUjZt">
+              <svg viewBox="0 0 16 16" data-page-node-id="cSmRepzw5uskSAFjlq50kJ"><path d="M4 6l4 4 4-4" data-page-node-id="VMMDCt5NSJ2TOWKRDQK87K" /></svg>
             </button>
           </div>
         </div>
-        <div class="dock-body" id="dockBody"></div>
-        <div class="dock-resizer" data-resize="dock"></div>
+        <div class="dock-body" id="dockBody" data-page-node-id="ZcJCGTZAyYM5NvhYvjHwtk"></div>
+        <div class="dock-resizer" data-resize="dock" data-page-node-id="j9jQNLFmSwbrQJASoRBT3k"></div>
       </section>
 
       <!-- ══════════ STATUS BAR ══════════ -->
-      <footer class="statusbar" id="statusbar"></footer>
+      <footer class="statusbar" id="statusbar" data-page-node-id="5miG1FncvbYONfj5GQtfFz"></footer>
     </div>
 
     <!-- ══════════ OVERLAYS ══════════ -->
-    <div class="dropzone" id="dropzone" hidden>
-      <div class="dropzone-inner">
-        <svg viewBox="0 0 48 48" aria-hidden="true">
-          <path d="M24 32V10m0 0-8 8m8-8 8 8" />
-          <path d="M8 30v6a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-6" />
+    <div class="dropzone" id="dropzone" hidden data-page-node-id="vzBmbsOTbbX1Sygfus9V06">
+      <div class="dropzone-inner" data-page-node-id="LWC6H5C33wi6pso3MWFlWu">
+        <svg viewBox="0 0 48 48" aria-hidden="true" data-page-node-id="4zXbGj3bytn5z4BZht8wC9">
+          <path d="M24 32V10m0 0-8 8m8-8 8 8" data-page-node-id="PHLVMX45KvTBKkZ9e0IBB7" />
+          <path d="M8 30v6a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-6" data-page-node-id="2kmuQ8XfVo3IGbV5WwOJty" />
         </svg>
-        <div class="dropzone-text" data-i18n="welcome.drop">释放以载入点云</div>
+        <div class="dropzone-text" data-i18n="welcome.drop" data-page-node-id="BpWk6VJy8CDt54xlruDiCf">释放以载入点云</div>
       </div>
     </div>
 
-    <div class="toasts" id="toasts"></div>
+    <div class="toasts" id="toasts" data-page-node-id="h02c47UsnxlyZVmk4IByJY"></div>
 
-    <input type="file" id="fileInput" multiple hidden />
-    <input type="file" id="projectInput" accept=".json" hidden />
-    <input type="file" id="lutInput" accept=".json" hidden />
+    <input type="file" id="fileInput" multiple hidden data-page-node-id="1qrDvZCwY5rRAxLRKY8acs" />
+    <input type="file" id="projectInput" accept=".json" hidden data-page-node-id="0vauO97LcobiADXvraMuNu" />
+    <input type="file" id="lutInput" accept=".json" hidden data-page-node-id="aj3fZKqtKi4QXwadI9eMXR" />
 
     <script type="module" src="/src/main.ts"></script>
 
     <!-- ══════════ BOOT SPLASH ══════════ -->
-    <div class="boot-splash" id="bootSplash" role="status" aria-live="polite" aria-label="Loading">
-      <div class="boot-splash-inner">
-        <div class="boot-logo" aria-hidden="true">
-          <span class="boot-ring"></span>
-          <svg class="boot-mark" viewBox="0 0 24 24">
-            <path d="M12 2.5 21 7.2v9.6L12 21.5 3 16.8V7.2z" />
-            <circle cx="12" cy="12" r="2.1" />
-            <circle cx="6.6" cy="7.6" r="1.35" />
-            <circle cx="17.4" cy="7.6" r="1.35" />
-            <circle cx="6.6" cy="16.4" r="1.35" />
-            <circle cx="17.4" cy="16.4" r="1.35" />
+    <div class="boot-splash" id="bootSplash" role="status" aria-live="polite" aria-label="Loading" data-page-node-id="gcCIE5VCBKGOBZpxEbypk0">
+      <div class="boot-splash-inner" data-page-node-id="4pRiSq1sWQcAZpnD2MirPH">
+        <div class="boot-logo" aria-hidden="true" data-page-node-id="9Hx6jPlMsBqkpz6KHA4bV3">
+          <span class="boot-ring" data-page-node-id="llwBwyMpE0rFS1ebStRlDP"></span>
+          <svg class="boot-mark" viewBox="0 0 24 24" data-page-node-id="HW2ZiTGwt3abURDHuAFg0K">
+            <path d="M12 2.5 21 7.2v9.6L12 21.5 3 16.8V7.2z" data-page-node-id="p8yRTRMXePbn38jybBjZjJ" />
+            <circle cx="12" cy="12" r="2.1" data-page-node-id="tcc2R280z5hqvNLmFycH7u" />
+            <circle cx="6.6" cy="7.6" r="1.35" data-page-node-id="5azJfUI7dzrV1k2PDNxcF4" />
+            <circle cx="17.4" cy="7.6" r="1.35" data-page-node-id="58UmYiLFAfVK02ZIm4lRLs" />
+            <circle cx="6.6" cy="16.4" r="1.35" data-page-node-id="GRYbdbKMzLhDNKHL2dRfjq" />
+            <circle cx="17.4" cy="16.4" r="1.35" data-page-node-id="ObPrNDRF5Grqufo5Jyj1G7" />
           </svg>
         </div>
-        <div class="boot-name">PointCloud<span class="boot-name-thin">Inspector</span></div>
-        <div class="boot-bar"><span class="boot-bar-fill"></span></div>
-        <div class="boot-label" data-i18n="boot.loading">正在初始化渲染器…</div>
+        <div class="boot-name" data-page-node-id="3wmu6VY7o9u5FbC5rXJOeZ">PointCloud<span class="boot-name-thin" data-page-node-id="zNeQVXYEdz5o2ELbzK0WHI">Inspector</span></div>
+        <div class="boot-bar" data-page-node-id="nT6w9QDGW7PZi2h0eaVLrE"><span class="boot-bar-fill" data-page-node-id="zONowA8EXAx1WLI0Bjw7Dh"></span></div>
+        <div class="boot-label" data-i18n="boot.loading" data-page-node-id="E52pHr7madC6YmQ8CMlQSn">正在初始化渲染器…</div>
       </div>
     </div>
   </body>
